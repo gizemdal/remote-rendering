@@ -60,6 +60,7 @@ struct RadiancePRD
     int          countEmitted;
     int          done;
     int          pad;
+    bool         hitLight;
 };
 
 
@@ -314,6 +315,7 @@ extern "C" __global__ void __raygen__rg()
         prd.countEmitted = true;
         prd.done         = false;
         prd.seed         = seed;
+        prd.hitLight     = false;
 
         int depth = 0;
         for( ;; )
@@ -329,7 +331,7 @@ extern "C" __global__ void __raygen__rg()
             result += prd.emitted;
             result += prd.radiance * prd.attenuation;
 
-            if( depth >= params.depth ) // Stop tracing if a certain depth is reached
+            if( depth >= params.depth || prd.hitLight) // Stop tracing if a certain depth is reached or a light source is hit
                 break;
 
             // If the ray did not intersect anything we want to set the total ray accumulation to zero
@@ -386,14 +388,30 @@ extern "C" __global__ void __closesthit__radiance()
     const int    vert_idx_offset = prim_idx*3;
 
     const Material mat = rt_data->mat; // material
+    const float3 P = optixGetWorldRayOrigin() + optixGetRayTmax() * ray_dir; // this is the intersection point!
+    const float3 v0 = make_float3(rt_data->vertices[vert_idx_offset + 0]);
+    const float3 v1 = make_float3(rt_data->vertices[vert_idx_offset + 1]);
+    const float3 v2 = make_float3(rt_data->vertices[vert_idx_offset + 2]);
 
-    const float3 v0   = make_float3( rt_data->vertices[ vert_idx_offset+0 ] );
-    const float3 v1   = make_float3( rt_data->vertices[ vert_idx_offset+1 ] );
-    const float3 v2   = make_float3( rt_data->vertices[ vert_idx_offset+2 ] );
-    const float3 N_0  = normalize( cross( v1-v0, v2-v0 ) );
+    // Apply barycentric equation to compute the shading normal!
+    /*glm::vec3 baryCoor(0.f);
+    glm::vec3 v0_v(v0.x, v0.y, v0.z);
+    glm::vec3 v1_v(v1.x, v1.y, v1.z);
+    glm::vec3 v2_v(v2.x, v2.y, v2.z);
+    glm::vec3 n0 = glm::normalize(glm::cross(v1_v - v0_v, v2_v - v0_v));
+    glm::vec3 n1 = glm::normalize(glm::cross(v0_v - v1_v, v2_v - v1_v));
+    glm::vec3 n2 = glm::normalize(glm::cross(v0_v - v2_v, v1_v - v2_v));
+    bool intersects = glm::intersectRayTriangle(glm::vec3(P.x, P.y, P.z), glm::vec3(ray_dir.x, ray_dir.y, ray_dir.z), v0_v,v1_v, v2_v, baryCoor);
+    glm::vec3 baryPos = (1.f - baryCoor.x - baryCoor.y) * v0_v + baryCoor.x * v1_v + baryCoor.y * v2_v;
+    float S = 0.5f * glm::length(glm::cross(v0_v - v1_v, v2_v - v1_v));
+    float S0 = 0.5f * glm::length(glm::cross(v1_v - baryPos, v2_v - baryPos));
+    float S1 = 0.5f * glm::length(glm::cross(v0_v - baryPos, v2_v - baryPos));
+    float S2 = 0.5f * glm::length(glm::cross(v0_v - baryPos, v1_v - baryPos));
+    glm::vec3 smoothNormal = glm::normalize(n0 * S0 / S + n1 * S1 / S + n2 * S2 / S);*/
+
+    const float3 N_0 = normalize(cross(v1 - v0, v2 - v0));//make_float3(smoothNormal.x, smoothNormal.y, smoothNormal.z);
 
     const float3 N    = faceforward( N_0, -ray_dir, N_0 );
-    const float3 P    = optixGetWorldRayOrigin() + optixGetRayTmax()*ray_dir;
 
     RadiancePRD* prd = getPRD();
 
@@ -401,7 +419,11 @@ extern "C" __global__ void __closesthit__radiance()
         prd->emitted = rt_data->emission_color;
     else
         prd->emitted = make_float3( 0.0f );
-
+    if (mat == EMISSIVE) {
+        prd->hitLight = true;
+        prd->attenuation *= (rt_data->diffuse_color * rt_data->emission_color);
+        return;
+    }
 
     unsigned int seed = prd->seed;
 

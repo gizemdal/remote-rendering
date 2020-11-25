@@ -38,7 +38,8 @@ enum Material
     DIFFUSE,
     MIRROR,
     FRESNEL,
-    GLOSSY
+    GLOSSY,
+    EMISSIVE
 };
 
 

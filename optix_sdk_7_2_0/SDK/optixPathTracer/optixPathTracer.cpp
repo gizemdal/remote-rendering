@@ -376,6 +376,13 @@ static Vertex toVertex(glm::vec3& v, glm::mat4& t)
     return { v.x, v.y, v.z, 0.f };
 }
 
+static Vertex fixToUnitSphere(Vertex v) 
+{
+    // fix vertex position to be on unit sphere
+    float length = sqrtf(v.x * v.x + v.y * v.y + v.z * v.z);
+    return { v.x / length, v.y / length, v.z / length, 0.f };
+}
+
 static int addMaterial(Material m,
                         float3 dif_col,
                         float3 spec_col,
@@ -397,7 +404,8 @@ static void addSceneGeometry(int type,
                              int mat_id,
                              glm::vec3 pos,
                              glm::vec3 rot,
-                             glm::vec3 s) 
+                             glm::vec3 s,
+                             std::string objfile) 
 {
     // create a transform matrix from the pos, rot and s
     glm::mat4 translate = glm::translate(glm::mat4(), pos);
@@ -472,10 +480,83 @@ static void addSceneGeometry(int type,
             d_material_indices.push_back(mat_id);
     }
     else if (type == 1) {
+        // a sphere can be created by subdividing an icosahedron
+        // Source: http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
 
+        // First, create the 12 vertices of an icosahedron -> an icosahedron has 20 faces
+        float t = (1.f + sqrtf(5.f)) / 2.f;
+        Vertex p0 = fixToUnitSphere({ -1.f, t, 0.f, 0.f });
+        Vertex p1 = fixToUnitSphere({ 1.f, t, 0.f, 0.f });
+        Vertex p2 = fixToUnitSphere({ -1.f, -t, 0.f, 0.f });
+        Vertex p3 = fixToUnitSphere({ 1.f, -t, 0.f, 0.f });
+
+        Vertex p4 = fixToUnitSphere({ 0.f, -1.f, t, 0.f });
+        Vertex p5 = fixToUnitSphere({ 0.f, 1.f, t, 0.f });
+        Vertex p6 = fixToUnitSphere({ 0.f, -1.f, -t, 0.f });
+        Vertex p7 = fixToUnitSphere({ 0.f, 1.f, -t, 0.f });
+
+        Vertex p8 = fixToUnitSphere({ t, 0.f, -1.f, 0.f });
+        Vertex p9 = fixToUnitSphere({ t, 0.f, 1.f, 0.f });
+        Vertex p10 = fixToUnitSphere({ -t, 0.f, -1.f, 0.f });
+        Vertex p11 = fixToUnitSphere({ -t, 0.f, 1.f, 0.f });
+
+        // create a temporary triangles vector and put all the 20 triangles into it
+        // Each triangle is made of 3 consecutive vertices
+        std::vector<Vertex> temp_triangles = { p0, p11, p5, p0, p5, p1, p0, p1, p7, p0, p7, p10, p0, p10, p11,
+                                               p1, p5, p9, p5, p11, p4, p11, p10, p2, p10, p7, p6, p7, p1, p8,
+                                               p3, p9, p4, p3, p4, p2, p3, p2, p6, p3, p6, p8, p3, p8, p9,
+                                               p4, p9, p5, p2, p4, p11, p6, p2, p10, p8, p6, p7, p9, p8, p1 };
+        
+        // Each edge of the icosphere will be split in half -> this will create 4 subtriangles from 1 triangle
+        int rec_level = 3; // default subdivision level is set to 4, we can change it later
+        for (int i = 0; i < rec_level; ++i) {
+            std::vector<Vertex> temp_triangles_2;
+            for (int j = 0; j < temp_triangles.size(); j += 3) {
+                
+                // get the 3 vertices of the triangle
+                Vertex v1 = temp_triangles[j];
+                Vertex v2 = temp_triangles[j + 1];
+                Vertex v3 = temp_triangles[j + 2];
+
+                // replace current triangle with 4 triangles
+                Vertex mid1 = fixToUnitSphere({ (v1.x + v2.x) / 2.f, (v1.y + v2.y) / 2.f, (v1.z + v2.z) / 2.f, 0.f });
+                Vertex mid2 = fixToUnitSphere({ (v2.x + v3.x) / 2.f, (v2.y + v3.y) / 2.f, (v2.z + v3.z) / 2.f, 0.f });
+                Vertex mid3 = fixToUnitSphere({ (v1.x + v3.x) / 2.f, (v1.y + v3.y) / 2.f, (v1.z + v3.z) / 2.f, 0.f });
+
+                temp_triangles_2.push_back(v1);
+                temp_triangles_2.push_back(mid1);
+                temp_triangles_2.push_back(mid3);
+                temp_triangles_2.push_back(v2);
+                temp_triangles_2.push_back(mid2);
+                temp_triangles_2.push_back(mid1);
+                temp_triangles_2.push_back(v3);
+                temp_triangles_2.push_back(mid3);
+                temp_triangles_2.push_back(mid2);
+                temp_triangles_2.push_back(mid1);
+                temp_triangles_2.push_back(mid2);
+                temp_triangles_2.push_back(mid3);
+            }
+            // ping-pong vectors
+            temp_triangles = temp_triangles_2;
+        }
+
+        // Done with subdivision - now add the resulting vertices to the buffer as well the material indices per triangle
+        int num_triangles = 0;
+        for (int i = 0; i < temp_triangles.size(); ++i) {
+            if (i % 3 == 0) {
+                d_material_indices.push_back(mat_id);
+                num_triangles++;
+            }
+            Vertex v = temp_triangles[i];
+            d_vertices.push_back(toVertex(glm::vec3(v.x, v.y, v.z), transform));
+        }
+        TRIANGLE_COUNT += num_triangles;
     }
     else if (type == 2) {
-
+        // arbitrary mesh load
+        // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
+        // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
+        // Don't forget to update TRIANGLE_COUNT
     }
 }
 
@@ -1198,17 +1279,19 @@ int main( int argc, char* argv[] )
 
         // Set up the scene
         // First add materials
-        addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
         addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse green
         addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse red
+        addMaterial(MIRROR, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), 0.f, 5.8f);
 
         // Then add geometry
-        addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10)); // floor
-        addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10)); // ceiling
-        addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10)); // back wall
-        addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10)); // left wall
-        addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10)); // right wall
+        addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
+        addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
+        addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
+        addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
+        addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
+        addSceneGeometry(1, 4, glm::vec3(2.3, 3.2, -2.1), glm::vec3(0, 30, 0), glm::vec3(1, 1, 1), ""); // glossy sphere
         //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
         d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
