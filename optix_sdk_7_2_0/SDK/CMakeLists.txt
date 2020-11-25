@@ -370,6 +370,10 @@ function(OPTIX_add_sample_executable target_name_base target_name_var)
   endif()
 endfunction()
 
+set(GLM_ROOT_DIR "support")
+find_package(GLM REQUIRED)
+include_directories(${GLM_INCLUDE_DIRS})
+
 #########################################################
 #  List of samples found in subdirectories.
 #

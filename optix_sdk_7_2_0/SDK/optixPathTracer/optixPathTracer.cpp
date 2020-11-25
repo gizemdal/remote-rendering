@@ -31,6 +31,8 @@
 #include <cuda_gl_interop.h>
 #include <cuda_runtime.h>
 
+#include <glm/glm.hpp>
+
 #include <optix.h>
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
