@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+# Ignore the build file
+optix_sdk_7_2_0/SDK/build
