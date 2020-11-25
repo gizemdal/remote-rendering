@@ -32,6 +32,7 @@
 #include <cuda_runtime.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <optix.h>
 #include <optix_function_table_definition.h>
@@ -77,19 +78,6 @@ int32_t mouse_button = -1;
 int32_t samples_per_launch = 4;
 
 int depth = 3;
-
-// Buffers - These are initially dynamic
-const int32_t TRIANGLE_COUNT = 32;
-const int32_t MAT_COUNT = 5;
-
-std::vector<float3> d_vertices;
-std::vector<Material> d_mat_types;
-std::vector<uint32_t> d_mat_indices;
-std::vector<float3> d_emission_colors;
-std::vector<float3> d_diffuse_colors;
-std::vector<float3> d_spec_colors;
-std::vector<float> d_spec_exp;
-std::vector<float> d_ior;
 
 //------------------------------------------------------------------------------
 //
@@ -159,8 +147,20 @@ struct PathTracerState
 // Scene data
 //
 //------------------------------------------------------------------------------
+// Buffers - These are initially dynamic
+int32_t TRIANGLE_COUNT = 0;
+int32_t MAT_COUNT = 0;
 
-const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
+std::vector<Vertex> d_vertices;
+std::vector<Material> d_mat_types;
+std::vector<uint32_t> d_material_indices;
+std::vector<float3> d_emission_colors;
+std::vector<float3> d_diffuse_colors;
+std::vector<float3> d_spec_colors;
+std::vector<float> d_spec_exp;
+std::vector<float> d_ior;
+
+/*const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
 {  {
     // Floor  -- white lambert
     {    0.0f,    0.0f,    0.0f, 0.0f },
@@ -367,20 +367,116 @@ const std::array< float, MAT_COUNT > g_ior =
     { 0.f },
     { 0.f },
     { 0.f }
-} };
+} };*/
+
+static Vertex toVertex(glm::vec3& v, glm::mat4& t)
+{
+    // transform the v
+    v = glm::vec3(t * glm::vec4(v, 1.f));
+    return { v.x, v.y, v.z, 0.f };
+}
+
+static int addMaterial(Material m,
+                        float3 dif_col,
+                        float3 spec_col,
+                        float3 em_col,
+                        float spec_exp,
+                        float ior)
+{
+    d_mat_types.push_back(m);
+    d_diffuse_colors.push_back(dif_col);
+    d_spec_colors.push_back(spec_col);
+    d_emission_colors.push_back(em_col);
+    d_spec_exp.push_back(spec_exp);
+    d_ior.push_back(ior);
+    MAT_COUNT++;
+    return MAT_COUNT - 1;
+}
 
 static void addSceneGeometry(int type,
-                             float3 pos,
-                             float3 rot,
-                             float3 scale,
-                             float3 dif_col,
-                             float3 spec_col,
-                             float3 em_col,
-                             float spec_exp,
-                             float ior) 
+                             int mat_id,
+                             glm::vec3 pos,
+                             glm::vec3 rot,
+                             glm::vec3 s) 
 {
-    // create a transform matrix from the pos, rot and scale
-    
+    // create a transform matrix from the pos, rot and s
+    glm::mat4 translate = glm::translate(glm::mat4(), pos);
+    glm::mat4 rotateX = glm::rotate(rot.x * (float)M_PI / 180.f, glm::vec3(1.0, 0.0, 0.0));
+    glm::mat4 rotateY = glm::rotate(rot.y * (float)M_PI / 180.f, glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 rotateZ = glm::rotate(rot.z * (float)M_PI / 180.f, glm::vec3(0.0, 0.0, 1.0));
+    glm::mat4 scale = glm::scale(s);
+    glm::mat4 transform = translate * rotateX * rotateY * rotateZ * scale;
+
+    // determine what kind of geometry is added
+    // 0 : cube
+    // 1 : sphere
+    // 2 : arbitrary mesh
+
+    if (type == 0) {
+        // A cube is made of 12 triangles -> 36 vertices
+        // First create a unit cube, then transform the vertices. A unit cube has an edge length of 1.
+
+        // Add the vertices
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, -0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, -0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, -0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, -0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, -0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, -0.5f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, -0.5f, -0.5f), transform));
+
+        TRIANGLE_COUNT += 12;
+
+        // Add material id to mat indices
+        for (int i = 0; i < 12; ++i)
+            d_material_indices.push_back(mat_id);
+    }
+    else if (type == 1) {
+
+    }
+    else if (type == 2) {
+
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -502,10 +598,10 @@ void initLaunchParams( PathTracerState& state )
     state.params.depth = depth;
     state.params.subframe_index     = 0u;
 
-    state.params.light.emission = make_float3( 15.0f, 15.0f, 15.0f );
-    state.params.light.corner   = make_float3( 343.0f, 548.5f, 227.0f );
-    state.params.light.v1       = make_float3( 0.0f, 0.0f, 105.0f );
-    state.params.light.v2       = make_float3( -130.0f, 0.0f, 0.0f );
+    state.params.light.emission = make_float3( 5.0f, 5.0f, 5.0f );
+    state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
+    state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
+    state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
     state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );
     state.params.handle         = state.gas_handle;
 
@@ -605,10 +701,10 @@ static void context_log_cb( unsigned int level, const char* tag, const char* mes
 
 void initCameraState()
 {
-    camera.setEye( make_float3( 278.0f, 273.0f, -900.0f ) );
-    camera.setLookat( make_float3( 278.0f, 273.0f, 330.0f ) );
+    camera.setEye( make_float3( 0.f, 5.f, 10.5f ) );
+    camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
     camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
-    camera.setFovY( 35.0f );
+    camera.setFovY( 45.0f );
     camera_changed = true;
 
     trackball.setCamera( &camera );
@@ -644,20 +740,20 @@ void buildMeshAccel( PathTracerState& state )
     //
     // copy mesh data to device
     //
-    const size_t vertices_size_in_bytes = g_vertices.size() * sizeof( Vertex );
+    const size_t vertices_size_in_bytes = d_vertices.size() * sizeof( Vertex );
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &state.d_vertices ), vertices_size_in_bytes ) );
     CUDA_CHECK( cudaMemcpy(
                 reinterpret_cast<void*>( state.d_vertices ),
-                g_vertices.data(), vertices_size_in_bytes,
+                d_vertices.data(), vertices_size_in_bytes,
                 cudaMemcpyHostToDevice
                 ) );
 
     CUdeviceptr  d_mat_indices             = 0;
-    const size_t mat_indices_size_in_bytes = g_mat_indices.size() * sizeof( uint32_t );
+    const size_t mat_indices_size_in_bytes = d_material_indices.size() * sizeof( uint32_t );
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &d_mat_indices ), mat_indices_size_in_bytes ) );
     CUDA_CHECK( cudaMemcpy(
                 reinterpret_cast<void*>( d_mat_indices ),
-                g_mat_indices.data(),
+                d_material_indices.data(),
                 mat_indices_size_in_bytes,
                 cudaMemcpyHostToDevice
                 ) );
@@ -665,21 +761,19 @@ void buildMeshAccel( PathTracerState& state )
     //
     // Build triangle GAS
     //
-    uint32_t triangle_input_flags[MAT_COUNT] =  // One per SBT record for this build input
-    {
-        OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT,
-        OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT,
-        OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT,
-        OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT
-    };
+
+    std::vector<uint32_t> triangle_input_flags; // One per SBT record for this build input
+    for (int i = 0; i < MAT_COUNT; ++i) {
+        triangle_input_flags.push_back(OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT);
+    }
 
     OptixBuildInput triangle_input                           = {};
     triangle_input.type                                      = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
     triangle_input.triangleArray.vertexFormat                = OPTIX_VERTEX_FORMAT_FLOAT3;
     triangle_input.triangleArray.vertexStrideInBytes         = sizeof( Vertex );
-    triangle_input.triangleArray.numVertices                 = static_cast<uint32_t>( g_vertices.size() );
+    triangle_input.triangleArray.numVertices                 = static_cast<uint32_t>( d_vertices.size() );
     triangle_input.triangleArray.vertexBuffers               = &state.d_vertices;
-    triangle_input.triangleArray.flags                       = triangle_input_flags;
+    triangle_input.triangleArray.flags                       = triangle_input_flags.data();
     triangle_input.triangleArray.numSbtRecords               = MAT_COUNT;
     triangle_input.triangleArray.sbtIndexOffsetBuffer        = d_mat_indices;
     triangle_input.triangleArray.sbtIndexOffsetSizeInBytes   = sizeof( uint32_t );
@@ -976,20 +1070,23 @@ void createSBT( PathTracerState& state )
                 hitgroup_record_size * RAY_TYPE_COUNT * MAT_COUNT
                 ) );
 
-    HitGroupRecord hitgroup_records[RAY_TYPE_COUNT * MAT_COUNT];
+    std::vector<HitGroupRecord> hitgroup_records;
+    for (int i = 0; i < RAY_TYPE_COUNT * MAT_COUNT; ++i) {
+        hitgroup_records.push_back(HitGroupRecord());
+    }
     for( int i = 0; i < MAT_COUNT; ++i )
     {
         {
             const int sbt_idx = i * RAY_TYPE_COUNT + 0;  // SBT for radiance ray-type for ith material
 
             OPTIX_CHECK( optixSbtRecordPackHeader( state.radiance_hit_group, &hitgroup_records[sbt_idx] ) );
-            hitgroup_records[sbt_idx].data.emission_color = g_emission_colors[i];
-            hitgroup_records[sbt_idx].data.diffuse_color  = g_diffuse_colors[i];
-            hitgroup_records[sbt_idx].data.specular_color = g_spec_colors[i];
-            hitgroup_records[sbt_idx].data.spec_exp       = g_spec_exp[i];
-            hitgroup_records[sbt_idx].data.ior            = g_ior[i];
+            hitgroup_records[sbt_idx].data.emission_color = d_emission_colors[i];
+            hitgroup_records[sbt_idx].data.diffuse_color  = d_diffuse_colors[i];
+            hitgroup_records[sbt_idx].data.specular_color = d_spec_colors[i];
+            hitgroup_records[sbt_idx].data.spec_exp       = d_spec_exp[i];
+            hitgroup_records[sbt_idx].data.ior            = d_ior[i];
             hitgroup_records[sbt_idx].data.vertices       = reinterpret_cast<float4*>( state.d_vertices );
-            hitgroup_records[sbt_idx].data.mat            = g_material_types[i];
+            hitgroup_records[sbt_idx].data.mat            = d_mat_types[i];
         }
 
         {
@@ -1002,7 +1099,7 @@ void createSBT( PathTracerState& state )
 
     CUDA_CHECK( cudaMemcpy(
                 reinterpret_cast<void*>( d_hitgroup_records ),
-                hitgroup_records,
+                hitgroup_records.data(),
                 hitgroup_record_size*RAY_TYPE_COUNT*MAT_COUNT,
                 cudaMemcpyHostToDevice
                 ) );
@@ -1098,6 +1195,31 @@ int main( int argc, char* argv[] )
     try
     {
         initCameraState();
+
+        // Set up the scene
+        // First add materials
+        addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
+        addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
+        addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse green
+        addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse red
+
+        // Then add geometry
+        addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10)); // floor
+        addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10)); // ceiling
+        addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10)); // back wall
+        addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10)); // left wall
+        addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10)); // right wall
+        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
+        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
+        d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
+        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
+
+        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
+        d_vertices.push_back({ -2.f, 9.95f, 2.f, 0.0f });
+        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
+
+        d_material_indices.push_back(0);
+        d_material_indices.push_back(0);
 
         //
         // Set up OptiX state
