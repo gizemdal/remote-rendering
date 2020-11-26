@@ -66,6 +66,7 @@
 
 bool resize_dirty = false;
 bool minimized    = false;
+bool saveRequested = false;
 
 // Camera state
 bool             camera_changed = true;
@@ -77,7 +78,7 @@ int32_t mouse_button = -1;
 
 int32_t samples_per_launch = 4;
 
-int depth = 3;
+int depth = 6;
 
 //------------------------------------------------------------------------------
 //
@@ -568,7 +569,7 @@ static void addSceneGeometry(int type,
                                                p4, p9, p5, p2, p4, p11, p6, p2, p10, p8, p6, p7, p9, p8, p1 };
         
         // Each edge of the icosphere will be split in half -> this will create 4 subtriangles from 1 triangle
-        int rec_level = 3; // default subdivision level is set to 4, we can change it later
+        int rec_level = 2; // default subdivision level is set to 4, we can change it later
         for (int i = 0; i < rec_level; ++i) {
             std::vector<Vertex> temp_triangles_2;
             for (int j = 0; j < temp_triangles.size(); j += 3) {
@@ -708,9 +709,10 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
             glfwSetWindowShouldClose( window, true );
         }
     }
-    else if( key == GLFW_KEY_G )
+    else if( key == GLFW_KEY_S )
     {
-        // toggle UI draw
+        // Save the image
+        saveRequested = true;
     }
 }
 
@@ -753,7 +755,7 @@ void initLaunchParams( PathTracerState& state )
     state.params.depth = depth;
     state.params.subframe_index     = 0u;
 
-    state.params.light.emission = make_float3( 5.0f, 5.0f, 5.0f );
+    state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
     state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
     state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
     state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
@@ -1355,18 +1357,23 @@ int main( int argc, char* argv[] )
         // First add materials
         addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
-        addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse green
-        addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.05f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse red
-        addMaterial(MIRROR, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), 0.f, 5.8f);
+        addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
+        addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
+        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 7.5f, 2.3f); // white fresnel
+        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 15.2f, 2.3f); // glossy white
+        addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
         addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
         addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
-        addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
+        addSceneGeometry(0, 6, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
         addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
         addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
         addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
         //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3),""); // ceiling light
+        addSceneGeometry(1, 4, glm::vec3(2, 2, 0), glm::vec3(45, 45, 0), glm::vec3(2, 2, 2), ""); // fresnel sphere
+        addSceneGeometry(1, 5, glm::vec3(-2, 1, -2), glm::vec3(0, 0, 45), glm::vec3(1, 1, 1), ""); // glossy sphere
+        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
         d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
@@ -1401,6 +1408,8 @@ int main( int argc, char* argv[] )
             glfwSetScrollCallback( window, scrollCallback );
             glfwSetWindowUserPointer( window, &state.params );
 
+            outfile = "output.png";
+
             //
             // Render loop
             //
@@ -1420,6 +1429,15 @@ int main( int argc, char* argv[] )
 
                 do
                 {
+                    if (saveRequested) {
+                        sutil::ImageBuffer buffer;
+                        buffer.data = output_buffer.getHostPointer();
+                        buffer.width = output_buffer.width();
+                        buffer.height = output_buffer.height();
+                        buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        sutil::saveImage(outfile.c_str(), buffer, false);
+                        saveRequested = false;
+                    }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();
 
@@ -1442,7 +1460,7 @@ int main( int argc, char* argv[] )
                     glfwSwapBuffers( window );
 
                     ++state.params.subframe_index;
-                } while( !glfwWindowShouldClose( window ) );
+                } while( !glfwWindowShouldClose( window ));
                 CUDA_SYNC_CHECK();
             }
 

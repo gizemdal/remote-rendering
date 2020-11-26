@@ -98,23 +98,37 @@ struct Onb
       p = reflect(p, m_normal);
   }
 
-  __forceinline__ __device__ float3 refract_ray(const float eta, float3& p) const
+  __forceinline__ __device__ float3 refract_ray(const float eta, float3& p, float3& n) const
   {
-      float k = 1.f - eta * eta * (1.f - dot(m_normal, p) * dot(m_normal, p));
+      float k = 1.f - eta * eta * (1.f - dot(n, p) * dot(n, p));
       if (k < 0.f) return make_float3(0.f);
-      return eta * p - (eta * dot(m_normal, p) + sqrtf(k)) * m_normal;
+      return eta * p + (eta * dot(n, p) - sqrtf(k)) * n;
   }
 
   __forceinline__ __device__ void compute_fresnel_direction(const float u1, const float ior, float3& p) const
   {
-      float cosine;
+      float cosine = dot(p, m_normal);
+      if (cosine > 1.f) {
+          cosine = 1.f;
+      }
+      else if (cosine < -1.f) {
+          cosine = -1.f;
+      }
+      float3 n = m_normal;
       float reflect_prob;
-      bool entering = dot(p, m_normal) < 0;
-      float etaI = entering ? 1.f : ior;
-      float etaT = entering ? ior : 1.f;
+      float etaI = 1.f;
+      float etaT = ior;
+      if (cosine < 0) {
+          cosine = -cosine;
+      }
+      else {
+          float temp = etaI;
+          etaI = etaT;
+          etaT = temp;
+          n = -n;
+      }
       float eta = etaI / etaT;
-      cosine = entering ? -dot(p, m_normal) / length(p) : ior * dot(p, m_normal) / length(p);
-      float3 refractDir = refract_ray(eta, p);
+      float3 refractDir = refract_ray(eta, p, n);
       if (length(refractDir) == 0.f) {
           reflect_prob = 1.f;
       }
@@ -393,23 +407,7 @@ extern "C" __global__ void __closesthit__radiance()
     const float3 v1 = make_float3(rt_data->vertices[vert_idx_offset + 1]);
     const float3 v2 = make_float3(rt_data->vertices[vert_idx_offset + 2]);
 
-    // Apply barycentric equation to compute the shading normal!
-    /*glm::vec3 baryCoor(0.f);
-    glm::vec3 v0_v(v0.x, v0.y, v0.z);
-    glm::vec3 v1_v(v1.x, v1.y, v1.z);
-    glm::vec3 v2_v(v2.x, v2.y, v2.z);
-    glm::vec3 n0 = glm::normalize(glm::cross(v1_v - v0_v, v2_v - v0_v));
-    glm::vec3 n1 = glm::normalize(glm::cross(v0_v - v1_v, v2_v - v1_v));
-    glm::vec3 n2 = glm::normalize(glm::cross(v0_v - v2_v, v1_v - v2_v));
-    bool intersects = glm::intersectRayTriangle(glm::vec3(P.x, P.y, P.z), glm::vec3(ray_dir.x, ray_dir.y, ray_dir.z), v0_v,v1_v, v2_v, baryCoor);
-    glm::vec3 baryPos = (1.f - baryCoor.x - baryCoor.y) * v0_v + baryCoor.x * v1_v + baryCoor.y * v2_v;
-    float S = 0.5f * glm::length(glm::cross(v0_v - v1_v, v2_v - v1_v));
-    float S0 = 0.5f * glm::length(glm::cross(v1_v - baryPos, v2_v - baryPos));
-    float S1 = 0.5f * glm::length(glm::cross(v0_v - baryPos, v2_v - baryPos));
-    float S2 = 0.5f * glm::length(glm::cross(v0_v - baryPos, v1_v - baryPos));
-    glm::vec3 smoothNormal = glm::normalize(n0 * S0 / S + n1 * S1 / S + n2 * S2 / S);*/
-
-    const float3 N_0 = normalize(cross(v1 - v0, v2 - v0));//make_float3(smoothNormal.x, smoothNormal.y, smoothNormal.z);
+    const float3 N_0 = normalize(cross(v1 - v0, v2 - v0));
 
     const float3 N    = faceforward( N_0, -ray_dir, N_0 );
 
@@ -436,7 +434,7 @@ extern "C" __global__ void __closesthit__radiance()
         prd->direction = w_in;
         prd->origin    = P + prd->direction * EPSILON;
 
-        if (mat == GLOSSY || mat == MIRROR) {
+        if (mat == GLOSSY || mat == MIRROR || mat == FRESNEL) {
             prd->attenuation *= rt_data->specular_color;
         }
         else {
