@@ -1353,6 +1353,15 @@ int main( int argc, char* argv[] )
 
                 do
                 {
+                    if (saveRequested) {
+                        sutil::ImageBuffer buffer;
+                        buffer.data = output_buffer.getHostPointer();
+                        buffer.width = output_buffer.width();
+                        buffer.height = output_buffer.height();
+                        buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        sutil::saveImage(outfile.c_str(), buffer, false);
+                        saveRequested = false;
+                    }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();
 
@@ -1375,15 +1384,7 @@ int main( int argc, char* argv[] )
                     glfwSwapBuffers( window );
 
                     ++state.params.subframe_index;
-                } while( !glfwWindowShouldClose( window ) && !saveRequested);
-                if (saveRequested) {
-                    sutil::ImageBuffer buffer;
-                    buffer.data = output_buffer.getHostPointer();
-                    buffer.width = output_buffer.width();
-                    buffer.height = output_buffer.height();
-                    buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-                    sutil::saveImage(outfile.c_str(), buffer, false);
-                }
+                } while( !glfwWindowShouldClose( window ));
                 CUDA_SYNC_CHECK();
             }
 
