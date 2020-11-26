@@ -53,7 +53,6 @@ enum Geom
 
 struct ParallelogramLight
 {
-    Geom type;
     float3 corner;
     float3 v1, v2;
     float3 normal;
@@ -70,13 +69,14 @@ struct Params
     unsigned int height;
     unsigned int samples_per_launch;
     unsigned int depth;
+    unsigned int num_lights;
 
     float3       eye;
     float3       U;
     float3       V;
     float3       W;
 
-    ParallelogramLight     light;
+    ParallelogramLight*     lights;
     OptixTraversableHandle handle;
 };
 

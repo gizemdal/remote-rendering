@@ -419,7 +419,8 @@ extern "C" __global__ void __closesthit__radiance()
         prd->emitted = make_float3( 0.0f );
     if (mat == EMISSIVE) {
         prd->hitLight = true;
-        prd->attenuation *= (rt_data->diffuse_color * rt_data->emission_color);
+        prd->attenuation *= (rt_data->diffuse_color);
+        prd->radiance += rt_data->emission_color;
         return;
     }
 
@@ -447,7 +448,8 @@ extern "C" __global__ void __closesthit__radiance()
     const float z2 = rnd(seed);
     prd->seed = seed;
 
-    ParallelogramLight light = params.light;
+    // Choose a random light to sample from
+    ParallelogramLight light = params.lights[lcg(seed) % params.num_lights];
     const float3 light_pos = light.corner + light.v1 * z1 + light.v2 * z2;
 
     // Calculate properties of light sample (for area based pdf)

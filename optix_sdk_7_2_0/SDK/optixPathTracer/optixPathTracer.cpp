@@ -128,6 +128,7 @@ struct PathTracerState
     OptixTraversableHandle         gas_handle               = 0;  // Traversable handle for triangle AS
     CUdeviceptr                    d_gas_output_buffer      = 0;  // Triangle AS memory
     CUdeviceptr                    d_vertices               = 0;
+    CUdeviceptr                    d_lights                 = 0;
 
     OptixModule                    ptx_module               = 0;
     OptixPipelineCompileOptions    pipeline_compile_options = {};
@@ -165,6 +166,7 @@ std::vector<float3> d_spec_colors;
 std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
 std::vector<Triangle> d_triangles;
+std::vector<ParallelogramLight> d_lights;
 
 /*const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
 {  {
@@ -633,9 +635,10 @@ static void addSceneGeometry(Geom type,
     else if (type == PLANE) {
         // A unit (square) plane is simply one face of a cube
         // It's made of 2 triangles -> 6 vertices
-        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
-        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, -0.5f), transform));
-        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform));
+        Vertex v1 = toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform);
+        Vertex corner = toVertex(glm::vec3(0.5f, 0.f, -0.5f), transform);
+        Vertex v2 = toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform);
+        d_vertices.push_back(v1); d_vertices.push_back(corner); d_vertices.push_back(v2);
 
         d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
         d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, 0.5f), transform));
@@ -646,7 +649,15 @@ static void addSceneGeometry(Geom type,
         d_material_indices.push_back(mat_id);
 
         TRIANGLE_COUNT += 2;
-}
+        // Create a light if material is emissive
+        if (d_mat_types[mat_id] == EMISSIVE) {
+            float3 c = make_float3(corner.x, corner.y, corner.z); //corner
+            float3 v1f = make_float3(v1.x - c.x, 0.f, 0.f); //v1
+            float3 v2f = make_float3(0.f, 0.f, v2.z - c.z); //v2
+            float3 n = normalize(-cross(v1f, v2f));
+            d_lights.push_back({ c, v1f, v2f, n, d_emission_colors[mat_id] });
+        }
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -759,6 +770,17 @@ void printUsageAndExit( const char* argv0 )
 
 void initLaunchParams( PathTracerState& state )
 {
+    /* 
+    * Copy light data to device
+    */
+    const size_t lights_size_in_bytes = d_lights.size() * sizeof(ParallelogramLight);
+    CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&state.d_lights), lights_size_in_bytes));
+    CUDA_CHECK(cudaMemcpy(
+        reinterpret_cast<void*>(state.d_lights),
+        d_lights.data(), lights_size_in_bytes,
+        cudaMemcpyHostToDevice
+    ));
+
     CUDA_CHECK( cudaMalloc(
                 reinterpret_cast<void**>( &state.params.accum_buffer ),
                 state.params.width * state.params.height * sizeof( float4 )
@@ -770,11 +792,13 @@ void initLaunchParams( PathTracerState& state )
     state.params.subframe_index     = 0u;
 
     // Get light sources in the scene
-    state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
+    state.params.lights         = reinterpret_cast<ParallelogramLight*>(state.d_lights);
+    state.params.num_lights     = d_lights.size();
+    /*state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
     state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
     state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
     state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
-    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );
+    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );*/
     state.params.handle         = state.gas_handle;
 
     CUDA_CHECK( cudaStreamCreate( &state.stream ) );
@@ -873,7 +897,7 @@ static void context_log_cb( unsigned int level, const char* tag, const char* mes
 
 void initCameraState()
 {
-    camera.setEye( make_float3( 0.f, 5.f, 10.5f ) );
+    camera.setEye( make_float3( 0.f, 5.f, 17.5f ) );
     camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
     camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
     camera.setFovY( 45.0f );
@@ -1302,6 +1326,7 @@ void cleanupState( PathTracerState& state )
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.missRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.hitgroupRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_vertices ) ) );
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_lights ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_gas_output_buffer ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.params.accum_buffer ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_params ) ) );
@@ -1370,25 +1395,28 @@ int main( int argc, char* argv[] )
 
         // Set up the scene
         // First add materials
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(7.f, 1.f, 1.f), 0.f, 0.f); // light material
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(1.f, 1.f, 7.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
         addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
         addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
         addMaterial(FRESNEL, make_float3(1.f, 0.60f, 0.80f), make_float3(1.f, 0.60f, 0.80f), make_float3(0.f), 0.f, 5.4f); // pink fresnel
+        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 5.4f); // white fresnel
         addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 10.f, 0.f); // glossy white 1
         addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 40.f, 0.f); // glossy white 2
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
-        addSceneGeometry(PLANE, 0, glm::vec3(0, 9.98f, 0), glm::vec3(0, 0, 0), glm::vec3(4, .4, 4), ""); // ceiling light
-        addSceneGeometry(CUBE, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
-        addSceneGeometry(CUBE, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
-        addSceneGeometry(CUBE, 7, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
-        addSceneGeometry(CUBE, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
+        addSceneGeometry(PLANE, 0, glm::vec3(2, 9.98f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light 1
+        addSceneGeometry(PLANE, 1, glm::vec3(-2, 9.98f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light 2
+        addSceneGeometry(CUBE, 2, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
+        addSceneGeometry(CUBE, 2, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
+        addSceneGeometry(CUBE, 9, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
+        addSceneGeometry(CUBE, 2, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
         addSceneGeometry(CUBE, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        addSceneGeometry(MESH, 4, glm::vec3(-1.5, -1.2, -2), glm::vec3(0, 30, 0), glm::vec3(30, 30, 30), "../../data/bunny.obj"); // fresnel bunny
-        addSceneGeometry(ICOSPHERE, 5, glm::vec3(1.5, 1, 1.2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 1
-        addSceneGeometry(ICOSPHERE, 6, glm::vec3(3, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 2
+        addSceneGeometry(MESH, 6, glm::vec3(-1.5, -1.2, -2), glm::vec3(0, 30, 0), glm::vec3(30, 30, 30), "../../data/bunny.obj"); // fresnel bunny
+        addSceneGeometry(ICOSPHERE, 7, glm::vec3(1.5, 1, 1.2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 1
+        addSceneGeometry(ICOSPHERE, 8, glm::vec3(3, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 2
 
         //
         // Set up OptiX state
