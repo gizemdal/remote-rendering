@@ -1,7 +1,7 @@
 # remote-rendering
 CIS-565 Final Project
 
-![Sneak peek](images/test_1.png)
+![Sneak peek](images/test_2.png)
 
 NVIDIA OptiX 7.2.0 SDK & Samples: https://developer.nvidia.com/optix
 
