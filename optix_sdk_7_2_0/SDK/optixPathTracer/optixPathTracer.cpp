@@ -78,7 +78,7 @@ int32_t mouse_button = -1;
 
 int32_t samples_per_launch = 4;
 
-int depth = 6;
+int depth = 8;
 
 //------------------------------------------------------------------------------
 //
@@ -461,7 +461,7 @@ int loadMesh(std::string filename) {
     return 1;
 }
 
-static void addSceneGeometry(int type,
+static void addSceneGeometry(Geom type,
                              int mat_id,
                              glm::vec3 pos,
                              glm::vec3 rot,
@@ -477,11 +477,8 @@ static void addSceneGeometry(int type,
     glm::mat4 transform = translate * rotateX * rotateY * rotateZ * scale;
 
     // determine what kind of geometry is added
-    // 0 : cube
-    // 1 : sphere
-    // 2 : arbitrary mesh
 
-    if (type == 0) {
+    if (type == CUBE) {
         // A cube is made of 12 triangles -> 36 vertices
         // First create a unit cube, then transform the vertices. A unit cube has an edge length of 1.
 
@@ -540,7 +537,7 @@ static void addSceneGeometry(int type,
         for (int i = 0; i < 12; ++i)
             d_material_indices.push_back(mat_id);
     }
-    else if (type == 1) {
+    else if (type == ICOSPHERE) {
         // a sphere can be created by subdividing an icosahedron
         // Source: http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
 
@@ -569,7 +566,7 @@ static void addSceneGeometry(int type,
                                                p4, p9, p5, p2, p4, p11, p6, p2, p10, p8, p6, p7, p9, p8, p1 };
         
         // Each edge of the icosphere will be split in half -> this will create 4 subtriangles from 1 triangle
-        int rec_level = 2; // default subdivision level is set to 4, we can change it later
+        int rec_level = 3; // default subdivision level is set to 3, we can change it later
         for (int i = 0; i < rec_level; ++i) {
             std::vector<Vertex> temp_triangles_2;
             for (int j = 0; j < temp_triangles.size(); j += 3) {
@@ -613,7 +610,7 @@ static void addSceneGeometry(int type,
         }
         TRIANGLE_COUNT += num_triangles;
     }
-    else if (type == 2) {
+    else if (type == MESH) {
         if(objfile == "")
         {
             return;
@@ -627,12 +624,29 @@ static void addSceneGeometry(int type,
             d_vertices.push_back(toVertex(t.vertex[1], transform));
             d_vertices.push_back(toVertex(t.vertex[2], transform));
         }
-        TRIANGLE_COUNT = (int)d_triangles.size();
+        TRIANGLE_COUNT += (int)d_triangles.size();
         // arbitrary mesh load
         // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
         // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
         // Don't forget to update TRIANGLE_COUNT
     }
+    else if (type == PLANE) {
+        // A unit (square) plane is simply one face of a cube
+        // It's made of 2 triangles -> 6 vertices
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform));
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform));
+
+        // Push the material id twice, one per triangle
+        d_material_indices.push_back(mat_id);
+        d_material_indices.push_back(mat_id);
+
+        TRIANGLE_COUNT += 2;
+}
 }
 
 //------------------------------------------------------------------------------
@@ -755,6 +769,7 @@ void initLaunchParams( PathTracerState& state )
     state.params.depth = depth;
     state.params.subframe_index     = 0u;
 
+    // Get light sources in the scene
     state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
     state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
     state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
@@ -1359,31 +1374,21 @@ int main( int argc, char* argv[] )
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
         addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
         addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
-        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 7.5f, 2.3f); // white fresnel
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 15.2f, 2.3f); // glossy white
+        addMaterial(FRESNEL, make_float3(1.f, 0.60f, 0.80f), make_float3(1.f, 0.60f, 0.80f), make_float3(0.f), 0.f, 5.4f); // pink fresnel
+        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 10.f, 0.f); // glossy white 1
+        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 40.f, 0.f); // glossy white 2
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
-        addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
-        addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
-        addSceneGeometry(0, 6, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
-        addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
-        addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
-        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3),""); // ceiling light
-        addSceneGeometry(1, 4, glm::vec3(2, 2, 0), glm::vec3(45, 45, 0), glm::vec3(2, 2, 2), ""); // fresnel sphere
-        addSceneGeometry(1, 5, glm::vec3(-2, 1, -2), glm::vec3(0, 0, 45), glm::vec3(1, 1, 1), ""); // glossy sphere
-        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
-        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
-        d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
-        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
-
-        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
-        d_vertices.push_back({ -2.f, 9.95f, 2.f, 0.0f });
-        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
-
-        d_material_indices.push_back(0);
-        d_material_indices.push_back(0);
+        addSceneGeometry(PLANE, 0, glm::vec3(0, 9.98f, 0), glm::vec3(0, 0, 0), glm::vec3(4, .4, 4), ""); // ceiling light
+        addSceneGeometry(CUBE, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
+        addSceneGeometry(CUBE, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
+        addSceneGeometry(CUBE, 7, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
+        addSceneGeometry(CUBE, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
+        addSceneGeometry(CUBE, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
+        addSceneGeometry(MESH, 4, glm::vec3(-1.5, -1.2, -2), glm::vec3(0, 30, 0), glm::vec3(30, 30, 30), "../../data/bunny.obj"); // fresnel bunny
+        addSceneGeometry(ICOSPHERE, 5, glm::vec3(1.5, 1, 1.2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 1
+        addSceneGeometry(ICOSPHERE, 6, glm::vec3(3, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 2
 
         //
         // Set up OptiX state

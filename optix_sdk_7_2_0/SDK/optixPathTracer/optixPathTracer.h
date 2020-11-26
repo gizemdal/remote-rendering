@@ -42,9 +42,18 @@ enum Material
     EMISSIVE
 };
 
+enum Geom
+{
+    CUBE,
+    ICOSPHERE,
+    MESH,
+    PLANE
+};
+
 
 struct ParallelogramLight
 {
+    Geom type;
     float3 corner;
     float3 v1, v2;
     float3 normal;
@@ -67,7 +76,7 @@ struct Params
     float3       V;
     float3       W;
 
-    ParallelogramLight     light; // TODO: make light list
+    ParallelogramLight     light;
     OptixTraversableHandle handle;
 };
 
