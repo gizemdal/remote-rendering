@@ -53,7 +53,7 @@
 #include <GLFW/glfw3.h>
 
 #include "optixPathTracer.h"
-
+#include "tiny_obj_loader.h"
 #include <array>
 #include <cstring>
 #include <fstream>
@@ -62,7 +62,7 @@
 #include <sstream>
 #include <string>
 
-
+#define TINYOBJLOADER_IMPLEMENTATION 
 
 bool resize_dirty = false;
 bool minimized    = false;
@@ -115,6 +115,10 @@ struct Instance
     float transform[12];
 };
 
+struct Triangle {
+    glm::vec3 vertex[3];     // Vertices
+    glm::vec3 normal;        // Normal
+};
 
 struct PathTracerState
 {
@@ -159,6 +163,7 @@ std::vector<float3> d_diffuse_colors;
 std::vector<float3> d_spec_colors;
 std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
+std::vector<Triangle> d_triangles;
 
 /*const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
 {  {
@@ -400,6 +405,61 @@ static int addMaterial(Material m,
     return MAT_COUNT - 1;
 }
 
+// Reference: TinyOBJ Sample code: https://github.com/tinyobjloader/tinyobjloader
+int loadMesh(std::string filename) {
+
+    tinyobj::attrib_t attrib;
+    std::vector<tinyobj::shape_t> shapes;
+    std::vector<tinyobj::material_t> materials;
+    std::string warn;
+    std::string err;
+
+    // load obj
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str());
+
+    if (!warn.empty()) {
+        std::cout << warn << std::endl;
+    }
+
+    if (!err.empty()) {
+        std::cerr << err << std::endl;
+    }
+
+    if (!ret) {
+        exit(1);
+    }
+
+    // Loop over shapes
+    for (size_t s = 0; s < shapes.size(); s++) {
+        // Loop over faces(polygon)
+        size_t index_offset = 0;
+        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+            int fv = shapes[s].mesh.num_face_vertices[f];
+            // Loop over vertices in the face.
+            Triangle t;
+
+            for (size_t v = 0; v < fv; v++) {
+                // access to vertex
+                // Here only indices and vertices are useful
+                tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+                tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+                tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+                tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+
+                t.vertex[v] = glm::vec3(vx, vy, vz);
+            }
+
+            index_offset += fv;
+
+            // Compute the initial normal using glm::normalize
+            t.normal = glm::normalize(glm::cross(t.vertex[1] - t.vertex[0], t.vertex[2] - t.vertex[0]));
+            d_triangles.push_back(t);
+        }
+    }
+    std::cout << "Loaded mesh with " << d_triangles.size() << " triangles from " << filename.c_str() << std::endl;
+    return 1;
+}
+
 static void addSceneGeometry(int type,
                              int mat_id,
                              glm::vec3 pos,
@@ -553,6 +613,20 @@ static void addSceneGeometry(int type,
         TRIANGLE_COUNT += num_triangles;
     }
     else if (type == 2) {
+        if(objfile == "")
+        {
+            return;
+        }
+        loadMesh(objfile);
+        for (int i = 0; i < d_triangles.size(); ++i)
+        {
+            d_material_indices.push_back(mat_id);
+            Triangle t = d_triangles[i];
+            d_vertices.push_back(toVertex(t.vertex[0], transform));
+            d_vertices.push_back(toVertex(t.vertex[1], transform));
+            d_vertices.push_back(toVertex(t.vertex[2], transform));
+        }
+        TRIANGLE_COUNT = (int)d_triangles.size();
         // arbitrary mesh load
         // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
         // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
@@ -1291,8 +1365,8 @@ int main( int argc, char* argv[] )
         addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
         addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
         addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        addSceneGeometry(1, 4, glm::vec3(2.3, 3.2, -2.1), glm::vec3(0, 30, 0), glm::vec3(1, 1, 1), ""); // glossy sphere
-        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
+        addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
+        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3),""); // ceiling light
         d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
