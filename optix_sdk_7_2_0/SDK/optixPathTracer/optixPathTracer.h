@@ -26,6 +26,9 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 
+/*
+*   Enumerators for path tracing
+*/
 enum RayType
 {
     RAY_TYPE_RADIANCE  = 0,
@@ -47,18 +50,24 @@ enum Geom
     CUBE,
     ICOSPHERE,
     MESH,
-    PLANE
+    AREA_LIGHT,
+    POINT_LIGHT,
+    SPOT_LIGHT
 };
 
-
-struct ParallelogramLight
+/*
+*   Light sources
+*/
+struct Light
 {
+    Geom shape;
     float3 corner;
-    float3 v1, v2;
-    float3 normal;
+    float3 v1, v2; // used for area lights
+    float3 normal; // used for area lights
     float3 emission;
+    float width; // used for spot lights
+    float falloff_start; // used for spot lights
 };
-
 
 struct Params
 {
@@ -76,7 +85,7 @@ struct Params
     float3       V;
     float3       W;
 
-    ParallelogramLight*     lights;
+    Light*     lights;
     OptixTraversableHandle handle;
 };
 

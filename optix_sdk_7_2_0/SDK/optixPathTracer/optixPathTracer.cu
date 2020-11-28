@@ -357,6 +357,27 @@ extern "C" __global__ void __raygen__rg()
             ray_origin    = prd.origin;
             ray_direction = prd.direction;
 
+            // Apply Russian Roulette
+            if (depth > 2) {
+                // find max component of attenuation
+                float maxComp = 0.f;
+                if (prd.attenuation.x > prd.attenuation.y) {
+                    if (prd.attenuation.x > prd.attenuation.z)
+                        maxComp = prd.attenuation.x;
+                    else
+                        maxComp = prd.attenuation.z;
+                }
+                else {
+                    if (prd.attenuation.y > prd.attenuation.z)
+                        maxComp = prd.attenuation.y;
+                    else
+                        maxComp = prd.attenuation.z;
+                }
+                float r = rnd(prd.seed);
+                if (r > maxComp)
+                    break;
+                prd.attenuation /= maxComp;
+            }
             ++depth;
         }
     }
@@ -417,9 +438,10 @@ extern "C" __global__ void __closesthit__radiance()
         prd->emitted = rt_data->emission_color;
     else
         prd->emitted = make_float3( 0.0f );
+
+    // Return if a light source is hit
     if (mat == EMISSIVE) {
         prd->hitLight = true;
-        prd->attenuation *= (rt_data->diffuse_color);
         prd->radiance += rt_data->emission_color;
         return;
     }
@@ -435,11 +457,12 @@ extern "C" __global__ void __closesthit__radiance()
         prd->direction = w_in;
         prd->origin    = P + prd->direction * EPSILON;
 
+        // Update attenuation with brdf sample
         if (mat == GLOSSY || mat == MIRROR || mat == FRESNEL) {
-            prd->attenuation *= rt_data->specular_color;
+            prd->attenuation *= (rt_data->specular_color * dot(w_in, N));
         }
         else {
-            prd->attenuation *= rt_data->diffuse_color;
+            prd->attenuation *= (rt_data->diffuse_color * dot(w_in, N));
         }
         prd->countEmitted = false;
     }
@@ -449,32 +472,113 @@ extern "C" __global__ void __closesthit__radiance()
     prd->seed = seed;
 
     // Choose a random light to sample from
-    ParallelogramLight light = params.lights[lcg(seed) % params.num_lights];
-    const float3 light_pos = light.corner + light.v1 * z1 + light.v2 * z2;
-
-    // Calculate properties of light sample (for area based pdf)
-    const float  Ldist = length(light_pos - P );
-    const float3 L     = normalize(light_pos - P );
-    const float  nDl   = dot( N, L );
-    const float  LnDl  = -dot( light.normal, L );
-
-    float weight = 0.0f;
-    if( nDl > 0.0f && LnDl > 0.0f )
-    {
-        const bool occluded = traceOcclusion(
-            params.handle,
-            P,
-            L,
-            0.01f,         // tmin
-            Ldist - 0.01f  // tmax
+    // if there is no light in the scene return
+    if (params.num_lights == 0) return;
+    Light light = params.lights[lcg(seed) % params.num_lights];
+    if (light.shape == POINT_LIGHT) {
+        const float dist = length(light.corner - P);
+        if (dist <= 0.01f) {
+            // too close to point light -> consider this as intersection with the point light
+            prd->hitLight = true;
+            prd->radiance += rt_data->emission_color;
+            return;
+        }
+        const float3 L = normalize(light.corner - P);
+        float nDl = dot(N, L);
+        float weight = 0.f;
+        // Check occlusion
+        if (nDl > 0.f) {
+            const bool occluded = traceOcclusion(
+                params.handle,
+                P,
+                L,
+                0.01f,         // tmin
+                dist - 0.01f  // tmax
             );
 
-        if( !occluded )
-        {
-            const float A = length(cross(light.v1, light.v2));
-            weight = nDl * LnDl * A / (M_PIf * Ldist * Ldist);
+            // If the point light is not occluded, add emission / distance squared to radiance
+            // With scenes of only point lights we expect sharp shadows
+            if (!occluded) {
+                const float dist_2 = dist * dist;
+                if (dist_2 > 0.f) {
+                    weight = nDl / dist_2;
+                }
+            }
         }
+        prd->radiance += (light.emission * weight / params.num_lights);
     }
+    else if (light.shape == SPOT_LIGHT) {
+        const float dist = length(light.corner - P);
+        if (dist <= 0.01f) {
+            // too close to spot light -> consider this as intersection with the spot light
+            prd->hitLight = true;
+            prd->radiance += rt_data->emission_color;
+            return;
+        }
+        float3 L = normalize(light.corner - P);
+        float nDl = dot(N, L);
+        float weight = 0.f;
+        // Check occlusion
+        if (nDl > 0.f) {
+            const bool occluded = traceOcclusion(
+                params.handle,
+                P,
+                L,
+                0.01f,         // tmin
+                dist - 0.01f  // tmax
+            );
 
-    prd->radiance += light.emission * weight;
+            // If the point light is not occluded, add emission / distance squared to radiance
+            // With scenes of only point lights we expect sharp shadows
+            if (!occluded) {
+                const float dist_2 = dist * dist;
+                if (dist_2 > 0.f) {
+                    // Compute falloff
+                    float falloff = 0.f;
+                    float cos_angle = dot(normalize(P - light.corner), light.normal);
+                    if (cos_angle < light.width) return;
+                    else if (cos_angle > light.falloff_start) {
+                        falloff = 1.f;
+                    }
+                    else {
+                        if (light.falloff_start - light.width != 0.f) {
+                            float delta = (cos_angle - light.width) / (light.falloff_start - light.width);
+                            falloff = delta * delta * delta * delta;
+                        }
+                    }
+                    weight = nDl * falloff / dist_2;
+                }
+            }
+        }
+        prd->radiance += (light.emission * weight / params.num_lights);
+    }
+    else {
+        const float3 light_pos = light.corner + light.v1 * z1 + light.v2 * z2;
+
+        // Calculate properties of light sample (for area based pdf)
+        const float  Ldist = length(light_pos - P);
+        const float3 L = normalize(light_pos - P);
+        const float  nDl = dot(N, L);
+        const float  LnDl = -dot(light.normal, L);
+
+        float weight = 0.0f;
+        if (nDl > 0.0f && LnDl > 0.0f)
+        {
+            const bool occluded = traceOcclusion(
+                params.handle,
+                P,
+                L,
+                0.01f,         // tmin
+                Ldist - 0.01f  // tmax
+            );
+
+            if (!occluded)
+            {
+                const float A = length(cross(light.v1, light.v2));
+                weight = nDl * LnDl * A / (M_PIf * Ldist * Ldist);
+            }
+        }
+
+        prd->radiance += (light.emission * weight / params.num_lights);
+    }
 }
