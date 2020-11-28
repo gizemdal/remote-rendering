@@ -459,10 +459,10 @@ extern "C" __global__ void __closesthit__radiance()
 
         // Update attenuation with brdf sample
         if (mat == GLOSSY || mat == MIRROR || mat == FRESNEL) {
-            prd->attenuation *= (rt_data->specular_color * dot(w_in, N));
+            prd->attenuation *= (rt_data->specular_color);
         }
         else {
-            prd->attenuation *= (rt_data->diffuse_color * dot(w_in, N));
+            prd->attenuation *= (rt_data->diffuse_color);
         }
         prd->countEmitted = false;
     }
