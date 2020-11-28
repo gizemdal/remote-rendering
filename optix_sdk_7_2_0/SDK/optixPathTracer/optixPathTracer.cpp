@@ -51,7 +51,6 @@
 #include <optix_stack_size.h>
 
 #include <GLFW/glfw3.h>
-
 #include "optixPathTracer.h"
 #include "tiny_obj_loader.h"
 #include <array>
@@ -79,7 +78,7 @@ int32_t mouse_button = -1;
 
 int32_t samples_per_launch = 4;
 
-int depth = 6;
+int depth = 3;
 
 //------------------------------------------------------------------------------
 //
@@ -1221,16 +1220,16 @@ int main( int argc, char* argv[] )
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
-        addSceneGeometry(AREA_LIGHT, 0, glm::vec3(-3.2, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light 1
-        addSceneGeometry(AREA_LIGHT, 1, glm::vec3(0, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light 2
-        addSceneGeometry(AREA_LIGHT, 2, glm::vec3(3.2, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light 3
+        addSceneGeometry(AREA_LIGHT, 0, glm::vec3(-3.2, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 9.95), ""); // ceiling light 1
+        addSceneGeometry(AREA_LIGHT, 1, glm::vec3(0, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 9.95), ""); // ceiling light 2
+        addSceneGeometry(AREA_LIGHT, 2, glm::vec3(3.2, 9.95f, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 9.95), ""); // ceiling light 3
         addSceneGeometry(CUBE, 3, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
         addSceneGeometry(CUBE, 3, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
         addSceneGeometry(CUBE, 10, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
-        addSceneGeometry(CUBE, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
-        addSceneGeometry(CUBE, 3, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        addSceneGeometry(MESH, 6, glm::vec3(-1.5, -1.2, -2), glm::vec3(0, 30, 0), glm::vec3(30, 30, 30), "../../data/bunny.obj"); // fresnel bunny
-        addSceneGeometry(ICOSPHERE, 8, glm::vec3(1.5, 1, 1.2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 1
+        //addSceneGeometry(CUBE, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
+        //addSceneGeometry(CUBE, 3, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
+        addSceneGeometry(MESH, 3, glm::vec3(-1.5, -1.2, -2), glm::vec3(0, 30, 0), glm::vec3(30, 30, 30), "../../data/bunny.obj"); // fresnel bunny
+        //addSceneGeometry(ICOSPHERE, 8, glm::vec3(1.5, 1, 1.2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 1
         addSceneGeometry(ICOSPHERE, 9, glm::vec3(3, 1, -2), glm::vec3(0, 0, 0), glm::vec3(1, 1, 1), ""); // glossy sphere 2
 
         //

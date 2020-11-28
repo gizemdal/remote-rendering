@@ -30,8 +30,6 @@ OPTIX_add_sample_executable( optixPathTracer target_name
   optixPathTracer.cu
   optixPathTracer.cpp
   optixPathTracer.h
-  optixDenoiser.cpp
-  optiXDenoiser.h
   tiny_obj_loader.h
   tiny_obj_loader.cc
   OPTIONS -rdc true

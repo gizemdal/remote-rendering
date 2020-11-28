@@ -55,16 +55,17 @@ void Trackball::startTracking(int x, int y)
     m_performTracking = true;
 }
 
-void Trackball::updateTracking(int x, int y, int /*canvasWidth*/, int /*canvasHeight*/)
+bool Trackball::updateTracking(int x, int y, int /*canvasWidth*/, int /*canvasHeight*/)
 {
     if(!m_performTracking)
     {
         startTracking(x, y);
-        return;
+        return true;
     }
 
     int deltaX = x - m_prevPosX;
     int deltaY = y - m_prevPosY;
+    //if (deltaX < 0.1f && deltaY < 0.1f) return false;
 
     m_prevPosX = x;
     m_prevPosY = y;
@@ -77,6 +78,7 @@ void Trackball::updateTracking(int x, int y, int /*canvasWidth*/, int /*canvasHe
         reinitOrientationFromCamera();
         m_camera->setUp(m_w);
     }
+    return true;
 }
 
 void Trackball::updateCamera()
