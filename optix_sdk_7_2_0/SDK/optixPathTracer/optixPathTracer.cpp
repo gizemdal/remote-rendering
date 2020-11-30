@@ -61,7 +61,8 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-
+#include <set>
+#include <vector>
 #define TINYOBJLOADER_IMPLEMENTATION 
 
 bool resize_dirty = false;
@@ -119,6 +120,23 @@ struct Instance
 struct Triangle {
     glm::vec3 vertex[3];     // Vertices
     glm::vec3 normal;        // Normal
+
+    //Material data;
+    glm::vec3 diffuse;
+};
+
+struct Mesh {
+    std::vector<Triangle*> triangles;
+    glm::vec3 diffuse;
+};
+
+struct Model {
+    ~Model()
+    {
+        for (auto mesh : meshes) delete mesh;
+    }
+    bool material;
+    std::vector<Mesh*> meshes;
 };
 
 struct PathTracerState
@@ -382,6 +400,18 @@ static Vertex toVertex(glm::vec3& v, glm::mat4& t)
     return { v.x, v.y, v.z, 0.f };
 }
 
+static glm::vec3 randomColor(int i)
+{
+    {
+        int r = unsigned(i) * 13 * 17 + 0x234235;
+        int g = unsigned(i) * 7 * 3 * 5 + 0x773477;
+        int b = unsigned(i) * 11 * 19 + 0x223766;
+        return glm::vec3((r & 255) / 255.f,
+            (g & 255) / 255.f,
+            (b & 255) / 255.f);
+    }
+}
+
 static Vertex fixToUnitSphere(Vertex v) 
 {
     // fix vertex position to be on unit sphere
@@ -407,16 +437,19 @@ static int addMaterial(Material m,
 }
 
 // Reference: TinyOBJ Sample code: https://github.com/tinyobjloader/tinyobjloader
-int loadMesh(std::string filename) {
+Model* loadMesh(std::string filename) {
 
+    const std::string mtlDir
+        = filename.substr(0, filename.rfind('/') + 1);
+    Model* model = new Model;
     tinyobj::attrib_t attrib;
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
     std::string warn;
     std::string err;
-
+    bool material = false;
     // load obj
-    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str());
+    bool ret = tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, filename.c_str(), mtlDir.c_str());
 
     if (!warn.empty()) {
         std::cout << warn << std::endl;
@@ -430,35 +463,91 @@ int loadMesh(std::string filename) {
         exit(1);
     }
 
+    if (!materials.empty())
+    {
+        material = true;
+        std::cout << "mtl file loaded!" << std::endl;
+    }
     // Loop over shapes
     for (size_t s = 0; s < shapes.size(); s++) {
         // Loop over faces(polygon)
-        size_t index_offset = 0;
-        for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
-            int fv = shapes[s].mesh.num_face_vertices[f];
-            // Loop over vertices in the face.
-            Triangle t;
 
-            for (size_t v = 0; v < fv; v++) {
-                // access to vertex
-                // Here only indices and vertices are useful
-                tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
-                tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-                tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-                tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-
-                t.vertex[v] = glm::vec3(vx, vy, vz);
+        if (material)
+        {
+            model->material = true;
+            tinyobj::shape_t& shape = shapes[s];
+            size_t index_offset = 0;
+            std::set<int> materialIDs;
+            for (auto faceMatID : shape.mesh.material_ids)
+            {
+                materialIDs.insert(faceMatID);
             }
 
-            index_offset += fv;
+            for (int materialID : materialIDs) {
+                Mesh* mesh = new Mesh;
 
-            // Compute the initial normal using glm::normalize
-            t.normal = glm::normalize(glm::cross(t.vertex[1] - t.vertex[0], t.vertex[2] - t.vertex[0]));
-            d_triangles.push_back(t);
+                for (int f = 0; f < shape.mesh.material_ids.size(); f++) {
+                    if (shape.mesh.material_ids[f] != materialID) continue;
+                    Triangle* t = new Triangle;
+                    int fv = shape.mesh.num_face_vertices[f];
+
+                    for (size_t v = 0; v < fv; v++) {
+                        // access to vertex
+                        // Here only indices and vertices are useful
+                        tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+                        tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+                        tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+                        tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+
+                        t->vertex[v] = glm::vec3(vx, vy, vz);
+                    }
+                    index_offset += fv;
+
+                    // Compute the initial normal using glm::normalize
+                    t->normal = glm::normalize(glm::cross(t->vertex[1] - t->vertex[0], t->vertex[2] - t->vertex[0]));
+                    //t->diffuse = (const vec3f&)materials[materialID].diffuse;
+                    mesh->triangles.push_back(t);
+                }
+                mesh->diffuse = randomColor(materialID);
+                if (mesh->triangles.empty())
+                    delete mesh;
+                else
+                    model->meshes.push_back(mesh);
+            }
+        }
+        if (!material) {
+            model->material = false;
+            Mesh* mesh = new Mesh;
+            size_t index_offset = 0;
+            for (size_t f = 0; f < shapes[s].mesh.num_face_vertices.size(); f++) {
+                int fv = shapes[s].mesh.num_face_vertices[f];
+                // Loop over vertices in the face.
+                Triangle* t = new Triangle;
+
+                for (size_t v = 0; v < fv; v++) {
+                    // access to vertex
+                    // Here only indices and vertices are useful
+                    tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
+                    tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
+                    tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
+                    tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
+
+                    t->vertex[v] = glm::vec3(vx, vy, vz);
+                }
+
+                index_offset += fv;
+
+                // Compute the initial normal using glm::normalize
+                t->normal = glm::normalize(glm::cross(t->vertex[1] - t->vertex[0], t->vertex[2] - t->vertex[0]));
+                mesh->triangles.push_back(t);
+                d_triangles.push_back(*t);
+            }
+
+            model->meshes.push_back(mesh);
         }
     }
     std::cout << "Loaded mesh with " << d_triangles.size() << " triangles from " << filename.c_str() << std::endl;
-    return 1;
+    return model;
 }
 
 static void addSceneGeometry(int type,
@@ -618,16 +707,23 @@ static void addSceneGeometry(int type,
         {
             return;
         }
-        loadMesh(objfile);
-        for (int i = 0; i < d_triangles.size(); ++i)
+        Model* model = loadMesh(objfile);
+        
+        for (int i = 0; i < model->meshes.size(); ++i)
         {
-            d_material_indices.push_back(mat_id);
-            Triangle t = d_triangles[i];
-            d_vertices.push_back(toVertex(t.vertex[0], transform));
-            d_vertices.push_back(toVertex(t.vertex[1], transform));
-            d_vertices.push_back(toVertex(t.vertex[2], transform));
+            Mesh* mesh = model->meshes[i];
+            int material_id = (model->material) ? addMaterial(DIFFUSE, make_float3(mesh->diffuse.x,mesh->diffuse.y,mesh->diffuse.z), make_float3(0.f), make_float3(0.f), 0.f, 0.f) : mat_id;
+            for (int j = 0; j < mesh->triangles.size(); ++j)
+            {
+                d_material_indices.push_back(material_id);
+                Triangle* t = mesh->triangles[j];
+                d_vertices.push_back(toVertex(t->vertex[0], transform));
+                d_vertices.push_back(toVertex(t->vertex[1], transform));
+                d_vertices.push_back(toVertex(t->vertex[2], transform));
+                TRIANGLE_COUNT += 1;
+            }
         }
-        TRIANGLE_COUNT = (int)d_triangles.size();
+        d_triangles.clear();
         // arbitrary mesh load
         // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
         // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
@@ -1355,7 +1451,7 @@ int main( int argc, char* argv[] )
 
         // Set up the scene
         // First add materials
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(20.f, 20.f, 20.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
         addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
         addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
@@ -1364,16 +1460,17 @@ int main( int argc, char* argv[] )
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
-        addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
-        addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
-        addSceneGeometry(0, 6, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
-        addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
-        addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
+        //addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
+        //addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
+        //addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
+        //addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
+        //addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
+        //addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
         //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3),""); // ceiling light
-        addSceneGeometry(1, 4, glm::vec3(2, 2, 0), glm::vec3(45, 45, 0), glm::vec3(2, 2, 2), ""); // fresnel sphere
-        addSceneGeometry(1, 5, glm::vec3(-2, 1, -2), glm::vec3(0, 0, 45), glm::vec3(1, 1, 1), ""); // glossy sphere
+        //addSceneGeometry(1, 4, glm::vec3(2, 2, 0), glm::vec3(45, 45, 0), glm::vec3(2, 2, 2), ""); // fresnel sphere
+        //addSceneGeometry(1, 5, glm::vec3(-2, 1, -2), glm::vec3(0, 0, 45), glm::vec3(1, 1, 1), ""); // glossy sphere
         //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
+        addSceneGeometry(2, 1, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sponza.obj");
         d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
         d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
