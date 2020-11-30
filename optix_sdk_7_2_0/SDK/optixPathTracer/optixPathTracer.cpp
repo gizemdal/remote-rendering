@@ -51,7 +51,6 @@
 #include <optix_stack_size.h>
 
 #include <GLFW/glfw3.h>
-
 #include "optixPathTracer.h"
 #include "tiny_obj_loader.h"
 #include <array>
@@ -68,6 +67,7 @@
 bool resize_dirty = false;
 bool minimized    = false;
 bool saveRequested = false;
+bool re_render = true;
 
 // Camera state
 bool             camera_changed = true;
@@ -146,6 +146,7 @@ struct PathTracerState
     OptixTraversableHandle         gas_handle               = 0;  // Traversable handle for triangle AS
     CUdeviceptr                    d_gas_output_buffer      = 0;  // Triangle AS memory
     CUdeviceptr                    d_vertices               = 0;
+    CUdeviceptr                    d_lights                 = 0;
 
     OptixModule                    ptx_module               = 0;
     OptixPipelineCompileOptions    pipeline_compile_options = {};
@@ -183,215 +184,7 @@ std::vector<float3> d_spec_colors;
 std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
 std::vector<Triangle> d_triangles;
-
-/*const static std::array<Vertex, TRIANGLE_COUNT* 3> g_vertices =
-{  {
-    // Floor  -- white lambert
-    {    0.0f,    0.0f,    0.0f, 0.0f },
-    {    0.0f,    0.0f,  559.2f, 0.0f },
-    {  556.0f,    0.0f,  559.2f, 0.0f },
-    {    0.0f,    0.0f,    0.0f, 0.0f },
-    {  556.0f,    0.0f,  559.2f, 0.0f },
-    {  556.0f,    0.0f,    0.0f, 0.0f },
-
-    // Ceiling -- white lambert
-    {    0.0f,  548.8f,    0.0f, 0.0f },
-    {  556.0f,  548.8f,    0.0f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-
-    {    0.0f,  548.8f,    0.0f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-    {    0.0f,  548.8f,  559.2f, 0.0f },
-
-    // Back wall -- white lambert
-    {    0.0f,    0.0f,  559.2f, 0.0f },
-    {    0.0f,  548.8f,  559.2f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-
-    {    0.0f,    0.0f,  559.2f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-    {  556.0f,    0.0f,  559.2f, 0.0f },
-
-    // Right wall -- green lambert
-    {    0.0f,    0.0f,    0.0f, 0.0f },
-    {    0.0f,  548.8f,    0.0f, 0.0f },
-    {    0.0f,  548.8f,  559.2f, 0.0f },
-
-    {    0.0f,    0.0f,    0.0f, 0.0f },
-    {    0.0f,  548.8f,  559.2f, 0.0f },
-    {    0.0f,    0.0f,  559.2f, 0.0f },
-
-    // Left wall -- red lambert
-    {  556.0f,    0.0f,    0.0f, 0.0f },
-    {  556.0f,    0.0f,  559.2f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-
-    {  556.0f,    0.0f,    0.0f, 0.0f },
-    {  556.0f,  548.8f,  559.2f, 0.0f },
-    {  556.0f,  548.8f,    0.0f, 0.0f },
-
-    // Short block -- white lambert
-    {  130.0f,  165.0f,   65.0f, 0.0f },
-    {   82.0f,  165.0f,  225.0f, 0.0f },
-    {  242.0f,  165.0f,  274.0f, 0.0f },
-
-    {  130.0f,  165.0f,   65.0f, 0.0f },
-    {  242.0f,  165.0f,  274.0f, 0.0f },
-    {  290.0f,  165.0f,  114.0f, 0.0f },
-
-    {  290.0f,    0.0f,  114.0f, 0.0f },
-    {  290.0f,  165.0f,  114.0f, 0.0f },
-    {  240.0f,  165.0f,  272.0f, 0.0f },
-
-    {  290.0f,    0.0f,  114.0f, 0.0f },
-    {  240.0f,  165.0f,  272.0f, 0.0f },
-    {  240.0f,    0.0f,  272.0f, 0.0f },
-
-    {  130.0f,    0.0f,   65.0f, 0.0f },
-    {  130.0f,  165.0f,   65.0f, 0.0f },
-    {  290.0f,  165.0f,  114.0f, 0.0f },
-
-    {  130.0f,    0.0f,   65.0f, 0.0f },
-    {  290.0f,  165.0f,  114.0f, 0.0f },
-    {  290.0f,    0.0f,  114.0f, 0.0f },
-
-    {   82.0f,    0.0f,  225.0f, 0.0f },
-    {   82.0f,  165.0f,  225.0f, 0.0f },
-    {  130.0f,  165.0f,   65.0f, 0.0f },
-
-    {   82.0f,    0.0f,  225.0f, 0.0f },
-    {  130.0f,  165.0f,   65.0f, 0.0f },
-    {  130.0f,    0.0f,   65.0f, 0.0f },
-
-    {  240.0f,    0.0f,  272.0f, 0.0f },
-    {  240.0f,  165.0f,  272.0f, 0.0f },
-    {   82.0f,  165.0f,  225.0f, 0.0f },
-
-    {  240.0f,    0.0f,  272.0f, 0.0f },
-    {   82.0f,  165.0f,  225.0f, 0.0f },
-    {   82.0f,    0.0f,  225.0f, 0.0f },
-
-    // Tall block -- mirror
-    {  423.0f,  330.0f,  247.0f, 0.0f },
-    {  265.0f,  330.0f,  296.0f, 0.0f },
-    {  314.0f,  330.0f,  455.0f, 0.0f },
-
-    {  423.0f,  330.0f,  247.0f, 0.0f },
-    {  314.0f,  330.0f,  455.0f, 0.0f },
-    {  472.0f,  330.0f,  406.0f, 0.0f },
-
-    {  423.0f,    0.0f,  247.0f, 0.0f },
-    {  423.0f,  330.0f,  247.0f, 0.0f },
-    {  472.0f,  330.0f,  406.0f, 0.0f },
-
-    {  423.0f,    0.0f,  247.0f, 0.0f },
-    {  472.0f,  330.0f,  406.0f, 0.0f },
-    {  472.0f,    0.0f,  406.0f, 0.0f },
-
-    {  472.0f,    0.0f,  406.0f, 0.0f },
-    {  472.0f,  330.0f,  406.0f, 0.0f },
-    {  314.0f,  330.0f,  456.0f, 0.0f },
-
-    {  472.0f,    0.0f,  406.0f, 0.0f },
-    {  314.0f,  330.0f,  456.0f, 0.0f },
-    {  314.0f,    0.0f,  456.0f, 0.0f },
-
-    {  314.0f,    0.0f,  456.0f, 0.0f },
-    {  314.0f,  330.0f,  456.0f, 0.0f },
-    {  265.0f,  330.0f,  296.0f, 0.0f },
-
-    {  314.0f,    0.0f,  456.0f, 0.0f },
-    {  265.0f,  330.0f,  296.0f, 0.0f },
-    {  265.0f,    0.0f,  296.0f, 0.0f },
-
-    {  265.0f,    0.0f,  296.0f, 0.0f },
-    {  265.0f,  330.0f,  296.0f, 0.0f },
-    {  423.0f,  330.0f,  247.0f, 0.0f },
-
-    {  265.0f,    0.0f,  296.0f, 0.0f },
-    {  423.0f,  330.0f,  247.0f, 0.0f },
-    {  423.0f,    0.0f,  247.0f, 0.0f },
-
-    // Ceiling light -- emmissive
-    {  343.0f,  548.6f,  227.0f, 0.0f },
-    {  213.0f,  548.6f,  227.0f, 0.0f },
-    {  213.0f,  548.6f,  332.0f, 0.0f },
-
-    {  343.0f,  548.6f,  227.0f, 0.0f },
-    {  213.0f,  548.6f,  332.0f, 0.0f },
-    {  343.0f,  548.6f,  332.0f, 0.0f }
-} };
-
-static std::array<uint32_t, TRIANGLE_COUNT> g_mat_indices = {{
-    0, 0,                          // Floor         -- white lambert
-    0, 0,                          // Ceiling       -- white lambert
-    0, 0,                          // Back wall     -- white lambert
-    1, 1,                          // Right wall    -- green lambert
-    2, 2,                          // Left wall     -- red lambert
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  // Short block   -- white lambert
-    3, 3, 3, 3, 3, 3, 3, 3, 3, 3,  // Tall block    -- mirror
-    4, 4                           // Ceiling light -- emmissive
-}};
-
-const std::array<Material, MAT_COUNT> g_material_types =
-{ {
-    DIFFUSE,
-    GLOSSY,
-    DIFFUSE,
-    DIFFUSE,
-    DIFFUSE
-} };
-
-// Material emittance - only light sources have non zero value
-const std::array<float3, MAT_COUNT> g_emission_colors =
-{ {
-    {  0.0f,  0.0f,  0.0f },
-    {  0.0f,  0.0f,  0.0f },
-    {  0.0f,  0.0f,  0.0f },
-    {  0.0f,  0.0f,  0.0f },
-    { 15.0f, 15.0f,  15.0f }
-
-} };
-
-// Material rgb (diffuse color)
-const std::array<float3, MAT_COUNT> g_diffuse_colors =
-{ {
-    { 0.80f, 0.80f, 0.80f },
-    { 0.05f, 0.80f, 0.05f },
-    { 0.80f, 0.05f, 0.80f },
-    { 1.f, 1.f, 1.f },
-    { 0.50f, 0.00f, 0.00f }
-} };
-
-// Specular color (only specular materials have non zero value)
-const std::array< float3, MAT_COUNT > g_spec_colors =
-{ {
-    { 0.f, 0.f, 0.f },
-    { 0.05f, 0.80f, 0.05f },
-    { 0.f, 0.f, 0.f },
-    { 0.f, 0.f, 0.f },
-    { 0.f, 0.f, 0.f } 
-} };
-
-// Specular exponent of the material (only specular materials have non zero value)
-const std::array< float, MAT_COUNT > g_spec_exp =
-{ {
-    { 0.f },
-    { 1.f },
-    { 0.f },
-    { 0.f },
-    { 0.f }
-} };
-
-// Index of refraction (only refractive materials have non zero value
-const std::array< float, MAT_COUNT > g_ior =
-{ {
-    { 0.f },
-    { 0.f },
-    { 0.f },
-    { 0.f },
-    { 0.f }
-} };*/
+std::vector<Light> d_lights;
 
 static Vertex toVertex(glm::vec3& v, glm::mat4& t)
 {
@@ -550,7 +343,7 @@ Model* loadMesh(std::string filename) {
     return model;
 }
 
-static void addSceneGeometry(int type,
+static void addSceneGeometry(Geom type,
                              int mat_id,
                              glm::vec3 pos,
                              glm::vec3 rot,
@@ -566,11 +359,8 @@ static void addSceneGeometry(int type,
     glm::mat4 transform = translate * rotateX * rotateY * rotateZ * scale;
 
     // determine what kind of geometry is added
-    // 0 : cube
-    // 1 : sphere
-    // 2 : arbitrary mesh
 
-    if (type == 0) {
+    if (type == CUBE) {
         // A cube is made of 12 triangles -> 36 vertices
         // First create a unit cube, then transform the vertices. A unit cube has an edge length of 1.
 
@@ -629,7 +419,7 @@ static void addSceneGeometry(int type,
         for (int i = 0; i < 12; ++i)
             d_material_indices.push_back(mat_id);
     }
-    else if (type == 1) {
+    else if (type == ICOSPHERE) {
         // a sphere can be created by subdividing an icosahedron
         // Source: http://blog.andreaskahler.com/2009/06/creating-icosphere-mesh-in-code.html
 
@@ -658,7 +448,7 @@ static void addSceneGeometry(int type,
                                                p4, p9, p5, p2, p4, p11, p6, p2, p10, p8, p6, p7, p9, p8, p1 };
         
         // Each edge of the icosphere will be split in half -> this will create 4 subtriangles from 1 triangle
-        int rec_level = 2; // default subdivision level is set to 4, we can change it later
+        int rec_level = 3; // default subdivision level is set to 3, we can change it later
         for (int i = 0; i < rec_level; ++i) {
             std::vector<Vertex> temp_triangles_2;
             for (int j = 0; j < temp_triangles.size(); j += 3) {
@@ -702,7 +492,7 @@ static void addSceneGeometry(int type,
         }
         TRIANGLE_COUNT += num_triangles;
     }
-    else if (type == 2) {
+    else if (type == MESH) {
         if(objfile == "")
         {
             return;
@@ -728,6 +518,53 @@ static void addSceneGeometry(int type,
         // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
         // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
         // Don't forget to update TRIANGLE_COUNT
+    }
+    else if (type == AREA_LIGHT) {
+        // We create area lights from 2-D planes
+        // A plane is made of 2 triangles -> 6 vertices
+        Vertex v1 = toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform);
+        Vertex corner = toVertex(glm::vec3(0.5f, 0.f, -0.5f), transform);
+        Vertex v2 = toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform);
+        d_vertices.push_back(v1); d_vertices.push_back(corner); d_vertices.push_back(v2);
+
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, 0.5f), transform));
+        d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform));
+
+        // Push the material id twice, one per triangle
+        d_material_indices.push_back(mat_id);
+        d_material_indices.push_back(mat_id);
+
+        TRIANGLE_COUNT += 2;
+        // Create a light if material is emissive
+        if (d_mat_types[mat_id] == EMISSIVE) {
+            float3 c = make_float3(corner.x, corner.y, corner.z); //corner
+            float3 v1f = make_float3(v1.x - c.x, 0.f, 0.f); //v1
+            float3 v2f = make_float3(0.f, 0.f, v2.z - c.z); //v2
+            float3 n = normalize(-cross(v1f, v2f));
+            d_lights.push_back({ AREA_LIGHT, c, v1f, v2f, n, d_emission_colors[mat_id], 0.f, 0.f });
+        }
+    }
+    else if (type == POINT_LIGHT) {
+        // We only allow point geometry for light sources
+        if (d_mat_types[mat_id] != EMISSIVE) return;
+        Vertex pos = toVertex(glm::vec3(0.f, 0.f, 0.f), transform);
+        // We can't have the point light itself to be visible since points are not supported by our triangle GAS so we won't be adding it to d_vertices
+
+        float3 pos_f = make_float3(pos.x, pos.y, pos.z);
+        d_lights.push_back({ POINT_LIGHT, pos_f, pos_f, pos_f, make_float3(0.f), d_emission_colors[mat_id], 0.f, 0.f });
+    }
+    else if (type == SPOT_LIGHT) {
+        // We only allow spot light geometry for light sources
+        if (d_mat_types[mat_id] != EMISSIVE) return;
+        // A spotlight is very similar to a point light in terms of being represented by a single point rather than triangle(s)
+        // However, a spotlight needs additional light parameters to be set
+        Vertex pos = toVertex(glm::vec3(0.f, 0.f, 0.f), transform);
+        float3 pos_f = make_float3(pos.x, pos.y, pos.z);
+        // The normal of point lights is simply the direction the spot light cone is facing
+        glm::vec4 norm = rotateX * rotateY * rotateZ * glm::vec4(0.f, -1.f, 0.f, 1.f);
+        float3 n = normalize(make_float3(norm.x, norm.y, norm.z));
+        d_lights.push_back({ SPOT_LIGHT, pos_f, pos_f, pos_f, n, d_emission_colors[mat_id], glm::cos(25.f * (float)M_PI / 180.f), glm::cos(20.f * (float)M_PI / 180.f) });
     }
 }
 
@@ -841,6 +678,17 @@ void printUsageAndExit( const char* argv0 )
 
 void initLaunchParams( PathTracerState& state )
 {
+    /* 
+    * Copy light data to device
+    */
+    const size_t lights_size_in_bytes = d_lights.size() * sizeof(Light);
+    CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&state.d_lights), lights_size_in_bytes));
+    CUDA_CHECK(cudaMemcpy(
+        reinterpret_cast<void*>(state.d_lights),
+        d_lights.data(), lights_size_in_bytes,
+        cudaMemcpyHostToDevice
+    ));
+
     CUDA_CHECK( cudaMalloc(
                 reinterpret_cast<void**>( &state.params.accum_buffer ),
                 state.params.width * state.params.height * sizeof( float4 )
@@ -851,11 +699,14 @@ void initLaunchParams( PathTracerState& state )
     state.params.depth = depth;
     state.params.subframe_index     = 0u;
 
-    state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
+    // Get light sources in the scene
+    state.params.lights         = reinterpret_cast<Light*>(state.d_lights);
+    state.params.num_lights     = d_lights.size();
+    /*state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
     state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
     state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
     state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
-    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );
+    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );*/
     state.params.handle         = state.gas_handle;
 
     CUDA_CHECK( cudaStreamCreate( &state.stream ) );
@@ -954,7 +805,7 @@ static void context_log_cb( unsigned int level, const char* tag, const char* mes
 
 void initCameraState()
 {
-    camera.setEye( make_float3( 0.f, 5.f, 10.5f ) );
+    camera.setEye( make_float3( 0.f, 5.f, 17.5f ) );
     camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
     camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
     camera.setFovY( 45.0f );
@@ -1383,6 +1234,7 @@ void cleanupState( PathTracerState& state )
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.missRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.hitgroupRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_vertices ) ) );
+    CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_lights ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_gas_output_buffer ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.params.accum_buffer ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_params ) ) );
@@ -1451,12 +1303,16 @@ int main( int argc, char* argv[] )
 
         // Set up the scene
         // First add materials
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 1.f, 1.f), 0.f, 0.f); // light material
         addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(20.f, 20.f, 20.f), 0.f, 0.f); // light material
+        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
         addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
         addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
-        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 7.5f, 2.3f); // white fresnel
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 15.2f, 2.3f); // glossy white
+        addMaterial(FRESNEL, make_float3(1.f, 0.60f, 0.80f), make_float3(1.f, 0.60f, 0.80f), make_float3(0.f), 0.f, 5.4f); // pink fresnel
+        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 5.4f); // white fresnel
+        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 10.f, 0.f); // glossy white 1
+        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 40.f, 0.f); // glossy white 2
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
@@ -1542,13 +1398,13 @@ int main( int argc, char* argv[] )
                     auto t1 = std::chrono::steady_clock::now();
                     state_update_time += t1 - t0;
                     t0 = t1;
-
-                    launchSubframe( output_buffer, state );
+                    
+                    launchSubframe(output_buffer, state);
                     t1 = std::chrono::steady_clock::now();
                     render_time += t1 - t0;
                     t0 = t1;
 
-                    displaySubframe( output_buffer, gl_display, window );
+                    displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 

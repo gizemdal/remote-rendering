@@ -41,7 +41,7 @@ public:
     SUTILAPI bool wheelEvent(int dir);
 
     SUTILAPI void startTracking(int x, int y);
-    SUTILAPI void updateTracking(int x, int y, int canvasWidth, int canvasHeight);
+    SUTILAPI bool updateTracking(int x, int y, int canvasWidth, int canvasHeight);
     SUTILAPI void zoom(int direction);
     SUTILAPI float moveSpeed() const { return m_moveSpeed; }
     SUTILAPI void setMoveSpeed(const float& val) { m_moveSpeed = val; }

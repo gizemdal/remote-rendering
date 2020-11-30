@@ -29,6 +29,9 @@
 //#include <vector>
 //using namespace gdt;
 
+/*
+*   Enumerators for path tracing
+*/
 enum RayType
 {
     RAY_TYPE_RADIANCE  = 0,
@@ -45,13 +48,28 @@ enum Material
     EMISSIVE
 };
 
-
-struct ParallelogramLight
+enum Geom
 {
+    CUBE,
+    ICOSPHERE,
+    MESH,
+    AREA_LIGHT,
+    POINT_LIGHT,
+    SPOT_LIGHT
+};
+
+/*
+*   Light sources
+*/
+struct Light
+{
+    Geom shape;
     float3 corner;
-    float3 v1, v2;
-    float3 normal;
+    float3 v1, v2; // used for area lights
+    float3 normal; // used for area lights
     float3 emission;
+    float width; // used for spot lights
+    float falloff_start; // used for spot lights
 };
 
 struct Params
@@ -63,13 +81,14 @@ struct Params
     unsigned int height;
     unsigned int samples_per_launch;
     unsigned int depth;
+    unsigned int num_lights;
 
     float3       eye;
     float3       U;
     float3       V;
     float3       W;
 
-    ParallelogramLight     light; // TODO: make light list
+    Light*     lights;
     OptixTraversableHandle handle;
 };
 
