@@ -21,6 +21,8 @@
 
 ## Project Description
 
+<img src="images/diagram.jpg" alt="Diagram" width=800>
+
 <a name="overview"/>
 
 ## Setup Overview
