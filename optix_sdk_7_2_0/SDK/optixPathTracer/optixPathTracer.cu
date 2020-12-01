@@ -505,7 +505,7 @@ extern "C" __global__ void __closesthit__radiance()
                 }
             }
         }
-        prd->radiance += (light.emission * weight / params.num_lights);
+        prd->radiance += (light.emission * weight);
     }
     else if (light.shape == SPOT_LIGHT) {
         const float dist = length(light.corner - P);
@@ -550,7 +550,7 @@ extern "C" __global__ void __closesthit__radiance()
                 }
             }
         }
-        prd->radiance += (light.emission * weight / params.num_lights);
+        prd->radiance += (light.emission * weight);
     }
     else {
         const float3 light_pos = light.corner + light.v1 * z1 + light.v2 * z2;
@@ -579,6 +579,6 @@ extern "C" __global__ void __closesthit__radiance()
             }
         }
 
-        prd->radiance += (light.emission * weight / params.num_lights);
+        prd->radiance += (light.emission * weight);
     }
 }
