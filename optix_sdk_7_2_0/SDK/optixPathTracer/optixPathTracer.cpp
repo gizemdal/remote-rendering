@@ -1316,27 +1316,8 @@ int main( int argc, char* argv[] )
         addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
 
         // Then add geometry
-        //addSceneGeometry(0, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // floor
-        //addSceneGeometry(0, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 90), glm::vec3(.01, 10, 10), ""); // ceiling
-        //addSceneGeometry(0, 1, glm::vec3(0, 5, -5), glm::vec3(0, 90, 0), glm::vec3(.01, 10, 10), ""); // back wall
-        //addSceneGeometry(0, 3, glm::vec3(-5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // left wall
-        //addSceneGeometry(0, 2, glm::vec3(5, 5, 0), glm::vec3(0, 0, 0), glm::vec3(.01, 10, 10), ""); // right wall
-        //addSceneGeometry(2, 1, glm::vec3(0, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sven.obj"); // Obj loader
-        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3),""); // ceiling light
-        //addSceneGeometry(1, 4, glm::vec3(2, 2, 0), glm::vec3(45, 45, 0), glm::vec3(2, 2, 2), ""); // fresnel sphere
-        //addSceneGeometry(1, 5, glm::vec3(-2, 1, -2), glm::vec3(0, 0, 45), glm::vec3(1, 1, 1), ""); // glossy sphere
-        //addSceneGeometry(0, 0, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3)); // ceiling light
-        addSceneGeometry(2, 1, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../../scene/sponza.obj");
-        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
-        d_vertices.push_back({ 2.f, 9.95f, -2.f, 0.0f });
-        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
-
-        d_vertices.push_back({ 2.f, 9.95f, 2.f, 0.0f });
-        d_vertices.push_back({ -2.f, 9.95f, 2.f, 0.0f });
-        d_vertices.push_back({ -2.f, 9.95f, -2.f, 0.0f });
-
-        d_material_indices.push_back(0);
-        d_material_indices.push_back(0);
+        addSceneGeometry(POINT_LIGHT, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light
+        addSceneGeometry(MESH, 3, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../data/Sponza/sponza.obj");
 
         //
         // Set up OptiX state
