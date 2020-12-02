@@ -62,6 +62,10 @@ Area Lights | Point Lights| Spot Lights
 
 ## OBJ & MTL Parsing
 
+| Obj Loader | Mtl Loader) |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> |
+
 <a name="streaming"/>
 
 ## Streaming & Network
