@@ -9,6 +9,7 @@
   - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
 - Dayu Li
 - Tushar Purang
+  - [Portfolio](https://tushvr.com/), [Linkedin](https://www.linkedin.com/in/tpurang/)
 
 #### Table of Contents  
 [Project Description](#description)  
@@ -63,6 +64,12 @@ Area Lights | Point Lights| Spot Lights
 <a name="streaming"/>
 
 ## Streaming & Network
+
+For each frame cycle, the frame buffer is dumped into an image file on device memory. This frame is read by the desktop server application and sent to the Hololens application. Networking is done using Unity's UNet. 
+
+| Server-Client Frame Streaming <br />(Running on same Machine) | Raytracer to Android Frame streaming<br />(Running on different Machines) |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> |
 
 <a name="resources"/>
 
