@@ -15,7 +15,7 @@
 [Project Description](#description)  
 [Setup Overview](#overview)  
 [OptiX Ray Tracer](#ray-tracer)   
-[OBJ & MTL Parsing](#obj-mtl-parsing)
+[OBJ & MTL Parsing](#obj-mtl-parsing)   
 [Streaming & Network](#streaming)  
 [Resources](#resources)  
 
