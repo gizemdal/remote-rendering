@@ -805,7 +805,7 @@ static void context_log_cb( unsigned int level, const char* tag, const char* mes
 
 void initCameraState()
 {
-    camera.setEye( make_float3( 0.f, 5.f, 17.5f ) );
+    camera.setEye( make_float3( -3.7f, 5.f, -2.5f ) );
     camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
     camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
     camera.setFovY( 45.0f );

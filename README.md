@@ -27,10 +27,13 @@
 
 These instructions should help you with running the OptiX Path Tracer sample on Windows.
 - Step 1: Download the NVIDIA OptiX 7.2.0 SDK. This will also require a NVIDIA Driver of version 456.71 or newer.
-- Step 2: Once you download the SDK, clone our project and cd to optixPathTracer. 
-- Step 3: Create a build directory and cd into it. Run cmake to configure and generate the VS solution.   
-- Step 4: Once you have the VS solution ready, open it and set optixPathTracer as the start up project. 
-- Step 5: Build the project in Release mode and hit 'Ctrl + F5' to run. You should see an interactive popup window with [Crytek Sponza](https://casual-effects.com/data) rendered with white diffuse material.
+- Step 2: Once you download the OptiX SDK, clone our project and cd to the optix_sdk_7_2_0/SDK folder.
+- Step 3: Create a new folder named 'data' and create a subfolder named 'Sponza' inside. Download the [Crytek Sponza](https://casual-effects.com/data) mesh and put all the files inside the new Sponza folder.
+- Step 4: Go back to the SDK parent folder. Create a build directory and cd into it. Run cmake to configure and generate the VS solution.   
+- Step 5: Once you have the VS solution ready, open it and set optixPathTracer as the start up project.
+- Step 6: Build the project in Release mode and hit 'Ctrl + F5' to run. You should see an interactive popup window with Sponza rendered with different colors per material.
+	- Use the left mouse button to change camera orientation, middle mouse button to zoom in/out and right mouse button to pan the camera.
+	- Press 'S' on the keyboard to save the current render frame. The render frame will be saved as 'output.png' under SDK/build/optixPathTracer. This file will be overwritten by the next saved frame unless you change its name!
 
 <a name="ray-tracer"/>
 
