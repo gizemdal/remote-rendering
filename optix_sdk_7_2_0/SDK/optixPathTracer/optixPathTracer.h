@@ -25,6 +25,9 @@
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
+//#include "gdt/gdt/math/AffineSpace.h"
+//#include <vector>
+//using namespace gdt;
 
 /*
 *   Enumerators for path tracing
