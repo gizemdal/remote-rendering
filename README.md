@@ -14,12 +14,15 @@
 [Project Description](#description)  
 [Setup Overview](#overview)  
 [OptiX Ray Tracer](#ray-tracer)   
-[OBJ & MTL Parsing](#obj-mtl-parsing)   
+[OBJ & MTL Parsing](#obj-mtl-parsing)
+[Streaming & Network](#streaming)  
 [Resources](#resources)  
 
 <a name="description"/> 
 
 ## Project Description
+
+The goal of our project is to use the power of GPU rendering to get real-time path tracing results of scenes, pass the render frames from device to host memory to make it accessible by a server Unity Desktop Application and then send these frames to be viewed through XR platforms such as Microsoft Hololens or Android devices. Real time ray tracing on mixed reality platforms is still an open research problem today and we're very excited to have this opportunity to experiment with this field and share our results.'
 
 <img src="images/diagram.jpg" alt="Diagram" width=800>
 
@@ -55,6 +58,10 @@ Area Lights | Point Lights| Spot Lights
 
 ## OBJ & MTL Parsing
 
+<a name="streaming"/>
+
+## Streaming & Network
+
 <a name="resources"/>
 
 ## Resources
@@ -65,7 +72,7 @@ These resources helped us brainstorm ideas and implement our project. We also in
 - [NVIDIA OptiX 7 SIGGRAPH Course Samples by Ingo Wald](https://gitlab.com/ingowald/optix7course)
 - [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)
 - [tinyobjloader](https://github.com/tinyobjloader/tinyobjloader)
-- [Physically Based Rendering: From Theory to Implementation](http://www.pbr-book.org/)
+- [Physically Based Rendering: From Theory to Implementation Online Textbook](http://www.pbr-book.org/)
 - [About Azure Remote Rendering](https://docs.microsoft.com/en-us/azure/remote-rendering/overview/about)
 - [High-Quality Real-Time Global Illumination in Augmented Reality](https://www.ims.tuwien.ac.at/projects/rayengine)
 - [A Streaming-Based Solution for Remote Visualization of 3D Graphics on Mobile Devices](https://www.researchgate.net/publication/3411346_A_Streaming-Based_Solution_for_Remote_Visualization_of_3D_Graphics_on_Mobile_Devices)
