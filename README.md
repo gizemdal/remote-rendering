@@ -8,6 +8,7 @@
 - Gizem Dal
   - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
 - Dayu Li
+  - [Linkedin](https://www.linkedin.com/in/dayu95/)
 - Tushar Purang
   - [Portfolio](https://tushvr.com/), [Linkedin](https://www.linkedin.com/in/tpurang/)
 
