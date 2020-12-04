@@ -2,19 +2,23 @@
 
 ![Sneak peek](images/test_3_labeled.png)
 
+*The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
+
 ![Developer](https://img.shields.io/badge/Developer-Gizem%20Dal-green.svg) ![Developer](https://img.shields.io/badge/Developer-Dayu%20Li-green.svg) ![Developer](https://img.shields.io/badge/Developer-Tushar%20Purang-green.svg)
 
 **Team members:**
 - Gizem Dal
   - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
 - Dayu Li
+  - [Linkedin](https://www.linkedin.com/in/dayu95/)
 - Tushar Purang
+  - [Portfolio](https://tushvr.com/), [Linkedin](https://www.linkedin.com/in/tpurang/)
 
 #### Table of Contents  
 [Project Description](#description)  
 [Setup Overview](#overview)  
 [OptiX Ray Tracer](#ray-tracer)   
-[OBJ & MTL Parsing](#obj-mtl-parsing)
+[OBJ & MTL Parsing](#obj-mtl-parsing)   
 [Streaming & Network](#streaming)  
 [Resources](#resources)  
 
@@ -72,9 +76,19 @@ Every camera add must follow this argument pattern: CAMERA (render width) (rende
 
 ## OBJ & MTL Parsing
 
+| Obj Loader | Mtl Loader) |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> |
+
 <a name="streaming"/>
 
 ## Streaming & Network
+
+For each frame cycle, the frame buffer is dumped into an image file on device memory. This frame is read by the desktop server application and sent to the Hololens application. Networking is done using Unity's UNet. 
+
+| Server-Client Frame Streaming <br />(Running on same Machine) | Raytracer to Android Frame streaming<br />(Running on different Machines) |
+| :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> |
 
 <a name="resources"/>
 
