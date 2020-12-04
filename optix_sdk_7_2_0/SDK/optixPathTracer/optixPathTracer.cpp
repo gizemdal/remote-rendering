@@ -77,9 +77,13 @@ sutil::Trackball trackball;
 // Mouse state
 int32_t mouse_button = -1;
 
-int32_t samples_per_launch = 4;
+// Scene parameters
 
+int32_t samples_per_launch = 4;
 int depth = 6;
+int width = 768;
+int height = 768;
+
 
 //------------------------------------------------------------------------------
 //
@@ -821,6 +825,240 @@ void initCameraState()
     trackball.setGimbalLock( true );
 }
 
+void readSceneFile(std::string& scene_file)
+{
+    std::cout << "Reading scene file: " << scene_file << std::endl;
+    char* fname = (char*)scene_file.c_str();
+    std::ifstream read_scene(fname);
+    int line_num = 0; // track the current line number
+    bool cam_set = false; // have we set the scene camera yet?
+    if (read_scene.is_open()) {
+        std::string line;
+        // Read lines from the scene file
+        while (std::getline(read_scene, line)) {
+            line_num++;
+            // tokenize each line by space
+            std::stringstream tokenizer(line);
+            std::string token;
+            std::vector<std::string> tokens;
+            while (std::getline(tokenizer, token, ' ')) {
+                tokens.push_back(token);
+            }
+            // process the tokens
+            if (tokens.size() != 7) {
+                std::cout << "Invalid argument count at line " << line_num << std::endl;
+                continue;
+            }
+
+            // check if we're reading material, geometry or camera
+            if (strcmp(tokens[0].c_str(), "MATERIAL") == 0) {
+                // read material type
+                Material type;
+                if (strcmp(tokens[1].c_str(), "EMISSIVE") == 0) {
+                    type = EMISSIVE;
+                }
+                else if (strcmp(tokens[1].c_str(), "DIFFUSE") == 0) {
+                    type = DIFFUSE;
+                }
+                else if (strcmp(tokens[1].c_str(), "MIRROR") == 0) {
+                    type = MIRROR;
+                }
+                else if (strcmp(tokens[1].c_str(), "GLOSSY") == 0) {
+                    type = GLOSSY;
+                }
+                else if (strcmp(tokens[1].c_str(), "FRESNEL") == 0) {
+                    type = FRESNEL;
+                }
+                else {
+                    std::cout << "Invalid material type at line " << line_num << std::endl;
+                    continue;
+                }
+                // read material diffuse color
+                float3 diffuse;
+                std::vector<float> diffuse_val;
+                std::stringstream vec3_tokenizer(tokens[2]);
+                std::string float_token;
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    diffuse_val.push_back(atof(float_token.c_str()));
+                }
+                if (diffuse_val.size() != 3) {
+                    std::cout << "Invalid material diffuse color at line" << line_num << std::endl;
+                    continue;
+                }
+                diffuse = make_float3(diffuse_val[0], diffuse_val[1], diffuse_val[2]);
+                // read material specular color
+                float3 specular;
+                std::vector<float> specular_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[3]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    specular_val.push_back(atof(float_token.c_str()));
+                }
+                if (specular_val.size() != 3) {
+                    std::cout << "Invalid material specular color at line" << line_num << std::endl;
+                    continue;
+                }
+                specular = make_float3(specular_val[0], specular_val[1], specular_val[2]);
+                // read material emissive color
+                float3 emissive;
+                std::vector<float> emissive_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[4]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    emissive_val.push_back(atof(float_token.c_str()));
+                }
+                if (emissive_val.size() != 3) {
+                    std::cout << "Invalid material emissive color at line" << line_num << std::endl;
+                    continue;
+                }
+                emissive = make_float3(emissive_val[0], emissive_val[1], emissive_val[2]);
+                // read material specular exponent
+                float spec_exp = atof(tokens[5].c_str());
+                // read material ior
+                float ior = atof(tokens[6].c_str());
+                // add material
+                std::cout << type << " material added!" << std::endl;
+                addMaterial(type, diffuse,specular, emissive, spec_exp, ior);
+            }
+            else if (strcmp(tokens[0].c_str(), "GEOMETRY") == 0) {
+                // read geometry type
+                Geom type;
+                if (strcmp(tokens[1].c_str(), "CUBE") == 0) {
+                    type = CUBE;
+                }
+                else if (strcmp(tokens[1].c_str(), "ICOSPHERE") == 0) {
+                    type = ICOSPHERE;
+                }
+                else if (strcmp(tokens[1].c_str(), "MESH") == 0) {
+                    type = MESH;
+                }
+                else if (strcmp(tokens[1].c_str(), "AREA_LIGHT") == 0) {
+                    type = AREA_LIGHT;
+                }
+                else if (strcmp(tokens[1].c_str(), "POINT_LIGHT") == 0) {
+                    type = POINT_LIGHT;
+                }
+                else if (strcmp(tokens[1].c_str(), "SPOT_LIGHT") == 0) {
+                    type = SPOT_LIGHT;
+                }
+                else {
+                    std::cout << "Invalid geometry type at line " << line_num << std::endl;
+                    continue;
+                }
+                // read geometry material id
+                int mat_id = atoi(tokens[2].c_str());
+                // read geometry translate
+                glm::vec3 translate;
+                std::vector<float> translate_val;
+                std::stringstream vec3_tokenizer(tokens[3]);
+                std::string float_token;
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    translate_val.push_back(atof(float_token.c_str()));
+                }
+                if (translate_val.size() != 3) {
+                    std::cout << "Invalid geometry translate vector at line" << line_num << std::endl;
+                    continue;
+                }
+                translate = glm::vec3(translate_val[0], translate_val[1], translate_val[2]);
+                // read geometry rotate
+                glm::vec3 rotate;
+                std::vector<float> rotate_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[4]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    rotate_val.push_back(atof(float_token.c_str()));
+                }
+                if (rotate_val.size() != 3) {
+                    std::cout << "Invalid geometry rotate vector at line" << line_num << std::endl;
+                    continue;
+                }
+                rotate = glm::vec3(rotate_val[0], rotate_val[1], rotate_val[2]);
+                // read geometry scale
+                glm::vec3 scale;
+                std::vector<float> scale_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[5]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    scale_val.push_back(atof(float_token.c_str()));
+                }
+                if (scale_val.size() != 3) {
+                    std::cout << "Invalid geometry scale vector at line" << line_num << std::endl;
+                    continue;
+                }
+                scale = glm::vec3(scale_val[0], scale_val[1], scale_val[2]);
+                // read obj file path
+                std::string obj_file = tokens[6];
+                // create geometry
+                std::cout << type << " geometry added!" << std::endl;
+                addSceneGeometry(type, mat_id, translate, rotate, scale, obj_file);
+            }
+            else if (strcmp(tokens[0].c_str(), "CAMERA") == 0) {
+                if (cam_set) {
+                    // A camera for this scene is already set
+                    std::cout << "A camera for this scene is already set - ignoring line " << line_num << std::endl;
+                    continue;
+                }
+                // read scene width & height
+                width = atoi(tokens[1].c_str());
+                height = atoi(tokens[2].c_str());
+                // read camera eye
+                std::vector<float> eye_val;
+                std::stringstream vec3_tokenizer(tokens[3]);
+                std::string float_token;
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    eye_val.push_back(atof(float_token.c_str()));
+                }
+                if (eye_val.size() != 3) {
+                    std::cout << "Invalid camera eye vector at line" << line_num << std::endl;
+                    continue;
+                }
+                camera.setEye(make_float3(eye_val[0], eye_val[1], eye_val[2]));
+                // read camera look at
+                std::vector<float> lookat_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[4]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    lookat_val.push_back(atof(float_token.c_str()));
+                }
+                if (lookat_val.size() != 3) {
+                    std::cout << "Invalid camera lookat vector at line" << line_num << std::endl;
+                    continue;
+                }
+                camera.setLookat(make_float3(lookat_val[0], lookat_val[1], lookat_val[2]));
+                // read camera up
+                std::vector<float> up_val;
+                vec3_tokenizer.clear();
+                vec3_tokenizer.str(tokens[5]);
+                while (std::getline(vec3_tokenizer, float_token, ',')) {
+                    up_val.push_back(atof(float_token.c_str()));
+                }
+                if (up_val.size() != 3) {
+                    std::cout << "Invalid camera up vector at line" << line_num << std::endl;
+                    continue;
+                }
+                camera.setUp(make_float3(up_val[0], up_val[1], up_val[2]));
+                // read camera fovy
+                camera.setFovY(atof(tokens[6].c_str()));
+                // setup trackball
+                camera_changed = true;
+                trackball.setCamera(&camera);
+                trackball.setMoveSpeed(10.0f);
+                trackball.setReferenceFrame(
+                    make_float3(1.0f, 0.0f, 0.0f),
+                    make_float3(0.0f, 0.0f, 1.0f),
+                    make_float3(0.0f, 1.0f, 0.0f)
+                );
+                trackball.setGimbalLock(true);
+                cam_set = true;
+            }
+            else {
+                std::cout << "Invalid item at line " << line_num << std::endl;
+                continue;
+            }
+        }
+    }
+}
+
 
 void createContext( PathTracerState& state )
 {
@@ -1250,14 +1488,13 @@ void cleanupState( PathTracerState& state )
 int main( int argc, char* argv[] )
 {
     PathTracerState state;
-    state.params.width                             = 768;
-    state.params.height                            = 768;
     sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
 
     //
     // Parse command line options
     //
     std::string outfile;
+    std::string scene_file;
 
     for( int i = 1; i < argc; ++i )
     {
@@ -1275,6 +1512,12 @@ int main( int argc, char* argv[] )
             if( i >= argc - 1 )
                 printUsageAndExit( argv[0] );
             outfile = argv[++i];
+        }
+        else if (arg == "--scene" || arg == "-s")
+        {
+            if (i >= argc - 1)
+                printUsageAndExit(argv[0]);
+            scene_file = argv[++i];
         }
         else if( arg.substr( 0, 6 ) == "--dim=" )
         {
@@ -1299,11 +1542,14 @@ int main( int argc, char* argv[] )
 
     try
     {
-        initCameraState();
+        // Set up the scene
+        readSceneFile(scene_file);
+        state.params.width = width;
+        state.params.height = height;
 
         // Set up the scene
         // First add materials
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 1.f, 1.f), 0.f, 0.f); // light material
+        /*addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 1.f, 1.f), 0.f, 0.f); // light material
         addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(20.f, 20.f, 20.f), 0.f, 0.f); // light material
         addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
         addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
@@ -1317,7 +1563,7 @@ int main( int argc, char* argv[] )
 
         // Then add geometry
         addSceneGeometry(POINT_LIGHT, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light
-        addSceneGeometry(MESH, 3, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../data/Sponza/sponza.obj");
+        addSceneGeometry(MESH, 3, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../data/Sponza/sponza.obj");*/
 
         //
         // Set up OptiX state

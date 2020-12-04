@@ -56,6 +56,18 @@ Area Lights | Point Lights| Spot Lights
 :---: | :---: | :---: 
 <img src="images/area_lights.png" alt="Area Lights" width=300> | <img src="images/point_lights.png" alt="sneak peek" width=300> | <img src="images/spot_lights.png" alt="sneak peek" width=300>
 
+### Scene Files
+
+Scene files are passed as command line arguments with the "--scene" flag at front. For example; you can load the scene_example.txt test scene in this repository with the following command line argument: --scene ../../../../scene_example.txt
+
+There are 3 types of scene objects that you can add to the scene: CAMERA, MATERIAL and GEOMETRY. Every scene file must add a camera, if there are multiple camera items in the file only the first camera will be set as scene camera. All materials must be added before geometry!
+
+Every material add must follow this argument pattern: MATERIAL (material type) (diffuse color) (specular color) (emissive color) (specular exponent) (ior)
+
+Every geometry add must follow this argument pattern: GEOMETRY (geometry type) (material id - this is the order the material is added, ordering starts from id 0) (translate vector) (rotate vector) (scale vector) (obj filepath)
+
+Every camera add must follow this argument pattern: CAMERA (render width) (render height) (eye vector) (lookat vector) (up vector) (fovy)
+
 <a name="obj-mtl-parsing"/>
 
 ## OBJ & MTL Parsing
