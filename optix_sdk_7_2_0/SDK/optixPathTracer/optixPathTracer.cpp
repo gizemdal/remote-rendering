@@ -825,6 +825,37 @@ void initCameraState()
     trackball.setGimbalLock( true );
 }
 
+float3 readCameraFile(std::string& scene_file) {
+    char* fname = (char*)scene_file.c_str();
+    std::ifstream read_scene(fname);
+    if (read_scene.is_open()) {
+        std::string line;
+        std::getline(read_scene, line);
+        std::stringstream tokenizer(line);
+        std::string token;
+        std::vector<std::string> tokens;
+        while (std::getline(tokenizer, token, ' ')) {
+            tokens.push_back(token);
+        }
+        if (strcmp(tokens[0].c_str(), "CAMERA") != 0) {
+            std::cout << "CAMERA SETTINGS NOT IN FIRST LINE!" << std::endl;
+            return make_float3(-1);
+        }
+        else {
+            std::vector<float> lookat_val;
+            std::string float_token;
+            std::stringstream vec3_tokenizer(tokens[4]);
+            while (std::getline(vec3_tokenizer, float_token, ',')) {
+                lookat_val.push_back(atof(float_token.c_str()));
+            }
+            if (lookat_val.size() != 3) {
+                std::cout << "Invalid camera lookat vector "  << std::endl;
+                return make_float3(-1);
+            }
+            return make_float3(lookat_val[0], lookat_val[1], lookat_val[2]);
+        }
+    }
+}
 void readSceneFile(std::string& scene_file)
 {
     std::cout << "Reading scene file: " << scene_file << std::endl;
@@ -1489,7 +1520,7 @@ int main( int argc, char* argv[] )
 {
     PathTracerState state;
     sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
-
+    float3 prev_lookat;
     //
     // Parse command line options
     //
@@ -1544,6 +1575,7 @@ int main( int argc, char* argv[] )
     {
         // Set up the scene
         readSceneFile(scene_file);
+        prev_lookat = camera.lookat();
         state.params.width = width;
         state.params.height = height;
 
@@ -1606,9 +1638,18 @@ int main( int argc, char* argv[] )
                 std::chrono::duration<double> state_update_time( 0.0 );
                 std::chrono::duration<double> render_time( 0.0 );
                 std::chrono::duration<double> display_time( 0.0 );
-
                 do
                 {
+                    float3 curr_lookat = readCameraFile(scene_file);
+                    float3 diff = curr_lookat - prev_lookat;
+                    if (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z >= 1)
+                    {
+                        std::cout << "camera changed!" << std::endl;
+                        trackball.setViewMode(sutil::Trackball::EyeFixed);
+                        trackball.updateTracking(curr_lookat.x, curr_lookat.y, state.params.width, state.params.height);
+                        camera_changed = true;
+                        prev_lookat = curr_lookat;
+                    }
                     if (saveRequested) {
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
