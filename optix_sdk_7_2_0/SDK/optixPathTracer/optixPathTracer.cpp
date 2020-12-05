@@ -1646,7 +1646,7 @@ int main( int argc, char* argv[] )
                     {
                         std::cout << "camera changed!" << std::endl;
                         trackball.setViewMode(sutil::Trackball::EyeFixed);
-                        trackball.updateTracking(curr_lookat.x, curr_lookat.y, state.params.width, state.params.height);
+                        camera.setLookat(curr_lookat);
                         camera_changed = true;
                         prev_lookat = curr_lookat;
                     }

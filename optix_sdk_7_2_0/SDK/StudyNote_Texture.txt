@@ -1,0 +1,8 @@
+1.texture coordinates can be loaded from tiny obj loader. which is stored in attributes.texcoords.data().
+2.In the course example they used a 3rd party texture reader sbt_image. the load_texture function can be easily transferred to our project
+3.After texture files and coordinates are loaded into mesh structure, they will be synced up with cuda buffers in buildAccel() method
+4.The key here is generating hitgroup records in the createSBT() method. In our project a hit group record is created for every material. While it is created per mesh in the example.
+5.I am stuck here in the create SBT method. I couldn't think of a way to create hitgroup records based on the number of meshes. A way to mapping the mesh->textures with vertices and textcorrds is needed
+6.Current situation: vertex and materials are stored in vectors;Textures and textcoords are stored in the other vectors. But we are lack of a way to link them, to know which hitgroup record should be created for the given texture.
+7.The rest of the works should be very simliar, creating texture objects and adding fromTexture colors to the diffuse material in closesthit_radiance()
+8.If we want to create hitgroup records in the simliar logic to the example, we would need a huge change in how we create SBT and Program groups.
