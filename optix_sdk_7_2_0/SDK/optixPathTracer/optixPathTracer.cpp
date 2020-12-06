@@ -518,10 +518,6 @@ static void addSceneGeometry(Geom type,
             }
         }
         d_triangles.clear();
-        // arbitrary mesh load
-        // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
-        // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
-        // Don't forget to update TRIANGLE_COUNT
     }
     else if (type == AREA_LIGHT) {
         // We create area lights from 2-D planes
@@ -706,11 +702,6 @@ void initLaunchParams( PathTracerState& state )
     // Get light sources in the scene
     state.params.lights         = reinterpret_cast<Light*>(state.d_lights);
     state.params.num_lights     = d_lights.size();
-    /*state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
-    state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
-    state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
-    state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
-    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );*/
     state.params.handle         = state.gas_handle;
 
     CUDA_CHECK( cudaStreamCreate( &state.stream ) );
@@ -804,25 +795,6 @@ void displaySubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, sutil::GLD
 static void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */ )
 {
     std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: " << message << "\n";
-}
-
-
-void initCameraState()
-{
-    camera.setEye( make_float3( -3.7f, 5.f, -2.5f ) );
-    camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
-    camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
-    camera.setFovY( 45.0f );
-    camera_changed = true;
-
-    trackball.setCamera( &camera );
-    trackball.setMoveSpeed( 10.0f );
-    trackball.setReferenceFrame(
-            make_float3( 1.0f, 0.0f, 0.0f ),
-            make_float3( 0.0f, 0.0f, 1.0f ),
-            make_float3( 0.0f, 1.0f, 0.0f )
-            );
-    trackball.setGimbalLock( true );
 }
 
 float3 readCameraFile(std::string& scene_file) {
@@ -1578,24 +1550,6 @@ int main( int argc, char* argv[] )
         prev_lookat = camera.lookat();
         state.params.width = width;
         state.params.height = height;
-
-        // Set up the scene
-        // First add materials
-        /*addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 1.f, 1.f), 0.f, 0.f); // light material
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(20.f, 20.f, 20.f), 0.f, 0.f); // light material
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
-        addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
-        addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
-        addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
-        addMaterial(FRESNEL, make_float3(1.f, 0.60f, 0.80f), make_float3(1.f, 0.60f, 0.80f), make_float3(0.f), 0.f, 5.4f); // pink fresnel
-        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 5.4f); // white fresnel
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 10.f, 0.f); // glossy white 1
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 40.f, 0.f); // glossy white 2
-        addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
-
-        // Then add geometry
-        addSceneGeometry(POINT_LIGHT, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light
-        addSceneGeometry(MESH, 3, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../data/Sponza/sponza.obj");*/
 
         //
         // Set up OptiX state
