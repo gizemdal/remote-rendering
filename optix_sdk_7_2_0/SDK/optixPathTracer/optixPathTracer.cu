@@ -228,6 +228,10 @@ static __forceinline__ __device__ void computeNewDirection(const float u1, const
             glossy_lobe_sample(u1, u2, spec_exp, p);
             onb.inverse_transform(p); // transform the new ray direction to tangent space
             break;
+        case TEXTURE:
+            cosine_sample_hemisphere(u1, u2, p);
+            onb.inverse_transform(p); // transform the new ray direction to tangent space
+            break;
         default:
             break;
     }
@@ -421,6 +425,8 @@ extern "C" __global__ void __closesthit__radiance()
     const int    prim_idx        = optixGetPrimitiveIndex();
     const float3 ray_dir         = optixGetWorldRayDirection();
     const int    vert_idx_offset = prim_idx*3;
+    const float u = optixGetTriangleBarycentrics().x;
+    const float v = optixGetTriangleBarycentrics().y;
 
     const Material mat = rt_data->mat; // material
     const float3 P = optixGetWorldRayOrigin() + optixGetRayTmax() * ray_dir; // this is the intersection point!
@@ -460,6 +466,16 @@ extern "C" __global__ void __closesthit__radiance()
         // Update attenuation with brdf sample
         if (mat == GLOSSY || mat == MIRROR || mat == FRESNEL) {
             prd->attenuation *= (rt_data->specular_color);
+        }
+        else if (mat == TEXTURE && rt_data->texcoord) {
+            const float2 tc
+                = (1.f - u - v) * rt_data->texcoord[vert_idx_offset + 0]
+                + u * rt_data->texcoord[vert_idx_offset + 1]
+                + v * rt_data->texcoord[vert_idx_offset + 2];
+
+            float4 fromTexture = tex2D<float4>(rt_data->texture, 0.5, 0.5);
+            rt_data->diffuse_color *= make_float3(1,0,0);
+            prd->attenuation *= (rt_data->diffuse_color);
         }
         else {
             prd->attenuation *= (rt_data->diffuse_color);

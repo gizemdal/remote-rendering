@@ -45,7 +45,8 @@ enum Material
     MIRROR,
     FRESNEL,
     GLOSSY,
-    EMISSIVE
+    EMISSIVE,
+    TEXTURE
 };
 
 enum Geom
@@ -113,4 +114,6 @@ struct HitGroupData
     float  ior;
     float4* vertices;
     Material mat;
+    cudaTextureObject_t texture;
+    float2* texcoord;
 };

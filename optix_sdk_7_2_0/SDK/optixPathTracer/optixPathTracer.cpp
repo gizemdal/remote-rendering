@@ -53,6 +53,8 @@
 #include <GLFW/glfw3.h>
 #include "optixPathTracer.h"
 #include "tiny_obj_loader.h"
+#include "optixPathTracer/CUDABuffer.h"
+#include <map>
 #include <array>
 #include <cstring>
 #include <fstream>
@@ -62,7 +64,26 @@
 #include <string>
 #include <set>
 #include <vector>
+
 #define TINYOBJLOADER_IMPLEMENTATION 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+namespace std {
+    inline bool operator<(const tinyobj::index_t& a,
+        const tinyobj::index_t& b)
+    {
+        if (a.vertex_index < b.vertex_index) return true;
+        if (a.vertex_index > b.vertex_index) return false;
+
+        if (a.normal_index < b.normal_index) return true;
+        if (a.normal_index > b.normal_index) return false;
+
+        if (a.texcoord_index < b.texcoord_index) return true;
+        if (a.texcoord_index > b.texcoord_index) return false;
+
+        return false;
+    }
+}
 
 bool resize_dirty = false;
 bool minimized    = false;
@@ -124,14 +145,29 @@ struct Instance
 struct Triangle {
     glm::vec3 vertex[3];     // Vertices
     glm::vec3 normal;        // Normal
-
+    glm::vec2 texcoord;
     //Material data;
     glm::vec3 diffuse;
 };
 
+struct Texture {
+    ~Texture()
+    {
+        if (pixel) delete[] pixel;
+    }
+
+    uint32_t* pixel{ nullptr };
+    glm::ivec2     resolution{ -1 };
+};
+
 struct Mesh {
-    std::vector<Triangle*> triangles;
+    std::vector<glm::vec3> vertex;
+    std::vector<glm::vec3> normal;
+    std::vector<glm::vec2> texcoord;
+    std::vector<glm::ivec3> index;
+
     glm::vec3 diffuse;
+    int diffuseTextureID{ -1 };
 };
 
 struct Model {
@@ -141,6 +177,7 @@ struct Model {
     }
     bool material;
     std::vector<Mesh*> meshes;
+    std::vector<Texture*> textures;
 };
 
 struct PathTracerState
@@ -150,6 +187,7 @@ struct PathTracerState
     OptixTraversableHandle         gas_handle               = 0;  // Traversable handle for triangle AS
     CUdeviceptr                    d_gas_output_buffer      = 0;  // Triangle AS memory
     CUdeviceptr                    d_vertices               = 0;
+    CUdeviceptr                    d_texcoords              = 0;
     CUdeviceptr                    d_lights                 = 0;
 
     OptixModule                    ptx_module               = 0;
@@ -167,6 +205,7 @@ struct PathTracerState
     Params*                        d_params;
 
     OptixShaderBindingTable        sbt                      = {};
+    Model* model;
 };
 
 
@@ -180,6 +219,7 @@ int32_t TRIANGLE_COUNT = 0;
 int32_t MAT_COUNT = 0;
 
 std::vector<Vertex> d_vertices;
+std::vector<float2> d_texcoords;
 std::vector<Material> d_mat_types;
 std::vector<uint32_t> d_material_indices;
 std::vector<float3> d_emission_colors;
@@ -189,7 +229,10 @@ std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
 std::vector<Triangle> d_triangles;
 std::vector<Light> d_lights;
-
+std::vector<CUDABuffer> texcoordBuffer;
+std::vector<cudaArray_t>         textureArrays;
+std::vector<cudaTextureObject_t> textureObjects;
+const Model* MODEL;
 static Vertex toVertex(glm::vec3& v, glm::mat4& t)
 {
     // transform the v
@@ -231,6 +274,88 @@ static int addMaterial(Material m,
     d_ior.push_back(ior);
     MAT_COUNT++;
     return MAT_COUNT - 1;
+}
+
+int addVertex(Mesh* mesh,
+    tinyobj::attrib_t& attributes,
+    const tinyobj::index_t& idx,
+    std::map<tinyobj::index_t, int>& knownVertices)
+{
+    const glm::vec3* vertex_array = (const glm::vec3*)attributes.vertices.data();
+    const glm::vec3* normal_array = (const glm::vec3*)attributes.normals.data();
+    const glm::vec2* texcoord_array = (const glm::vec2*)attributes.texcoords.data();
+
+    int newID = (int)mesh->vertex.size();
+    knownVertices[idx] = newID;
+
+    mesh->vertex.push_back(vertex_array[idx.vertex_index]);
+    if (idx.normal_index >= 0) {
+        while (mesh->normal.size() < mesh->vertex.size())
+            mesh->normal.push_back(normal_array[idx.normal_index]);
+    }
+    if (idx.texcoord_index >= 0) {
+        while (mesh->texcoord.size() < mesh->vertex.size())
+            mesh->texcoord.push_back(texcoord_array[idx.texcoord_index]);
+    }
+
+    // just for sanity's sake:
+    if (mesh->texcoord.size() > 0)
+        mesh->texcoord.resize(mesh->vertex.size());
+    // just for sanity's sake:
+    if (mesh->normal.size() > 0)
+        mesh->normal.resize(mesh->vertex.size());
+    return newID;
+}
+
+/*! load a texture (if not already loaded), and return its ID in the
+      model's textures[] vector. Textures that could not get loaded
+      return -1 */
+int loadTexture(Model* model,
+    std::map<std::string, int>& knownTextures,
+    const std::string& inFileName,
+    const std::string& modelPath)
+{
+    if (inFileName == "")
+        return -1;
+
+    if (knownTextures.find(inFileName) != knownTextures.end())
+        return knownTextures[inFileName];
+
+    std::string fileName = inFileName;
+    // first, fix backspaces:
+    for (auto& c : fileName)
+        if (c == '\\') c = '/';
+    fileName = modelPath + "/" + fileName;
+
+    glm::ivec2 res;
+    int   comp;
+    unsigned char* image = stbi_load(fileName.c_str(),
+        &res.x, &res.y, &comp, STBI_rgb_alpha);
+    int textureID = -1;
+    if (image) {
+        textureID = (int)model->textures.size();
+        Texture* texture = new Texture;
+        texture->resolution = res;
+        texture->pixel = (uint32_t*)image;
+
+        /* iw - actually, it seems that stbi loads the pictures
+           mirrored along the y axis - mirror them here */
+        for (int y = 0; y < res.y / 2; y++) {
+            uint32_t* line_y = texture->pixel + y * res.x;
+            uint32_t* mirrored_y = texture->pixel + (res.y - 1 - y) * res.x;
+            int mirror_y = res.y - 1 - y;
+            for (int x = 0; x < res.x; x++) {
+                std::swap(line_y[x], mirrored_y[x]);
+            }
+        }
+        model->textures.push_back(texture);
+    }
+    else {
+        std::cout << "Could not load texture from " << fileName << "!" << std::endl;
+    }
+
+    knownTextures[inFileName] = textureID;
+    return textureID;
 }
 
 // Reference: TinyOBJ Sample code: https://github.com/tinyobjloader/tinyobjloader
@@ -279,34 +404,28 @@ Model* loadMesh(std::string filename) {
             {
                 materialIDs.insert(faceMatID);
             }
-
+            std::map<tinyobj::index_t, int> knownVertices;
+            std::map<std::string, int>      knownTextures;
             for (int materialID : materialIDs) {
                 Mesh* mesh = new Mesh;
 
                 for (int f = 0; f < shape.mesh.material_ids.size(); f++) {
                     if (shape.mesh.material_ids[f] != materialID) continue;
-                    Triangle* t = new Triangle;
-                    int fv = shape.mesh.num_face_vertices[f];
+                    tinyobj::index_t idx0 = shape.mesh.indices[3 * f + 0];
+                    tinyobj::index_t idx1 = shape.mesh.indices[3 * f + 1];
+                    tinyobj::index_t idx2 = shape.mesh.indices[3 * f + 2];
 
-                    for (size_t v = 0; v < fv; v++) {
-                        // access to vertex
-                        // Here only indices and vertices are useful
-                        tinyobj::index_t idx = shapes[s].mesh.indices[index_offset + v];
-                        tinyobj::real_t vx = attrib.vertices[3 * idx.vertex_index + 0];
-                        tinyobj::real_t vy = attrib.vertices[3 * idx.vertex_index + 1];
-                        tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
-
-                        t->vertex[v] = glm::vec3(vx, vy, vz);
-                    }
-                    index_offset += fv;
-
-                    // Compute the initial normal using glm::normalize
-                    t->normal = glm::normalize(glm::cross(t->vertex[1] - t->vertex[0], t->vertex[2] - t->vertex[0]));
-                    //t->diffuse = (const vec3f&)materials[materialID].diffuse;
-                    mesh->triangles.push_back(t);
+                    glm::ivec3 idx(addVertex(mesh, attrib, idx0, knownVertices),
+                        addVertex(mesh, attrib, idx1, knownVertices),
+                        addVertex(mesh, attrib, idx2, knownVertices));
+                    mesh->index.push_back(idx);
+                    mesh->diffuse = glm::vec3(1.f);
+                    mesh->diffuseTextureID = loadTexture(model,
+                        knownTextures,
+                        materials[materialID].diffuse_texname,
+                        mtlDir);
                 }
-                mesh->diffuse = randomColor(materialID);
-                if (mesh->triangles.empty())
+                if (mesh->vertex.empty())
                     delete mesh;
                 else
                     model->meshes.push_back(mesh);
@@ -330,13 +449,13 @@ Model* loadMesh(std::string filename) {
                     tinyobj::real_t vz = attrib.vertices[3 * idx.vertex_index + 2];
 
                     t->vertex[v] = glm::vec3(vx, vy, vz);
+                    mesh->vertex.push_back(glm::vec3(vx, vy, vz));
                 }
 
                 index_offset += fv;
 
                 // Compute the initial normal using glm::normalize
-                t->normal = glm::normalize(glm::cross(t->vertex[1] - t->vertex[0], t->vertex[2] - t->vertex[0]));
-                mesh->triangles.push_back(t);
+                //t->normal = glm::normalize(glm::cross(t->vertex[1] - t->vertex[0], t->vertex[2] - t->vertex[0]));
                 d_triangles.push_back(*t);
             }
 
@@ -506,18 +625,24 @@ static void addSceneGeometry(Geom type,
         for (int i = 0; i < model->meshes.size(); ++i)
         {
             Mesh* mesh = model->meshes[i];
-            int material_id = (model->material) ? addMaterial(DIFFUSE, make_float3(mesh->diffuse.x,mesh->diffuse.y,mesh->diffuse.z), make_float3(0.f), make_float3(0.f), 0.f, 0.f) : mat_id;
-            for (int j = 0; j < mesh->triangles.size(); ++j)
+            int material_id = (model->material) ? addMaterial(TEXTURE, make_float3(mesh->diffuse.x,mesh->diffuse.y,mesh->diffuse.z), make_float3(0.f), make_float3(0.f), 0.f, 0.f) : mat_id;
+            int triangle_count = 0;
+            for (int j = 0; j < mesh->vertex.size(); ++j)
             {
-                d_material_indices.push_back(material_id);
-                Triangle* t = mesh->triangles[j];
-                d_vertices.push_back(toVertex(t->vertex[0], transform));
-                d_vertices.push_back(toVertex(t->vertex[1], transform));
-                d_vertices.push_back(toVertex(t->vertex[2], transform));
-                TRIANGLE_COUNT += 1;
+                d_vertices.push_back(toVertex(mesh->vertex[j], transform));
+                if (j % 3 == 0)
+                {
+                    d_material_indices.push_back(material_id);
+                    TRIANGLE_COUNT += 1;
+                }
+            }
+            for (int k = 0; k < mesh->texcoord.size(); ++k)
+            {
+                d_texcoords.push_back(make_float2(mesh->texcoord[k].x,mesh->texcoord[k].y));
             }
         }
         d_triangles.clear();
+        MODEL = model;
         // arbitrary mesh load
         // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
         // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
@@ -825,37 +950,6 @@ void initCameraState()
     trackball.setGimbalLock( true );
 }
 
-float3 readCameraFile(std::string& scene_file) {
-    char* fname = (char*)scene_file.c_str();
-    std::ifstream read_scene(fname);
-    if (read_scene.is_open()) {
-        std::string line;
-        std::getline(read_scene, line);
-        std::stringstream tokenizer(line);
-        std::string token;
-        std::vector<std::string> tokens;
-        while (std::getline(tokenizer, token, ' ')) {
-            tokens.push_back(token);
-        }
-        if (strcmp(tokens[0].c_str(), "CAMERA") != 0) {
-            std::cout << "CAMERA SETTINGS NOT IN FIRST LINE!" << std::endl;
-            return make_float3(-1);
-        }
-        else {
-            std::vector<float> lookat_val;
-            std::string float_token;
-            std::stringstream vec3_tokenizer(tokens[4]);
-            while (std::getline(vec3_tokenizer, float_token, ',')) {
-                lookat_val.push_back(atof(float_token.c_str()));
-            }
-            if (lookat_val.size() != 3) {
-                std::cout << "Invalid camera lookat vector "  << std::endl;
-                return make_float3(-1);
-            }
-            return make_float3(lookat_val[0], lookat_val[1], lookat_val[2]);
-        }
-    }
-}
 void readSceneFile(std::string& scene_file)
 {
     std::cout << "Reading scene file: " << scene_file << std::endl;
@@ -1108,6 +1202,63 @@ void createContext( PathTracerState& state )
 }
 
 
+void createTextures()
+{
+    if (MODEL == NULL)
+    {
+        return;
+    }
+    int numTextures = (int)MODEL->textures.size();
+
+    textureArrays.resize(numTextures);
+    textureObjects.resize(numTextures);
+
+    for (int textureID = 0; textureID < numTextures; textureID++) {
+        auto texture = MODEL->textures[textureID];
+
+        cudaResourceDesc res_desc = {};
+
+        cudaChannelFormatDesc channel_desc;
+        int32_t width = texture->resolution.x;
+        int32_t height = texture->resolution.y;
+        int32_t numComponents = 4;
+        int32_t pitch = width * numComponents * sizeof(uint8_t);
+        channel_desc = cudaCreateChannelDesc<uchar4>();
+
+        cudaArray_t& pixelArray = textureArrays[textureID];
+        CUDA_CHECK(cudaMallocArray(&pixelArray,
+            &channel_desc,
+            width, height));
+
+        CUDA_CHECK(cudaMemcpy2DToArray(pixelArray,
+            /* offset */0, 0,
+            texture->pixel,
+            pitch, pitch, height,
+            cudaMemcpyHostToDevice));
+
+        res_desc.resType = cudaResourceTypeArray;
+        res_desc.res.array.array = pixelArray;
+
+        cudaTextureDesc tex_desc = {};
+        tex_desc.addressMode[0] = cudaAddressModeWrap;
+        tex_desc.addressMode[1] = cudaAddressModeWrap;
+        tex_desc.filterMode = cudaFilterModeLinear;
+        tex_desc.readMode = cudaReadModeNormalizedFloat;
+        tex_desc.normalizedCoords = 1;
+        tex_desc.maxAnisotropy = 1;
+        tex_desc.maxMipmapLevelClamp = 99;
+        tex_desc.minMipmapLevelClamp = 0;
+        tex_desc.mipmapFilterMode = cudaFilterModePoint;
+        tex_desc.borderColor[0] = 1.0f;
+        tex_desc.sRGB = 0;
+
+        // Create texture object
+        cudaTextureObject_t cuda_tex = 0;
+        CUDA_CHECK(cudaCreateTextureObject(&cuda_tex, &res_desc, &tex_desc, nullptr));
+        textureObjects[textureID] = cuda_tex;
+    }
+}
+
 void buildMeshAccel( PathTracerState& state )
 {
     //
@@ -1120,7 +1271,13 @@ void buildMeshAccel( PathTracerState& state )
                 d_vertices.data(), vertices_size_in_bytes,
                 cudaMemcpyHostToDevice
                 ) );
-
+    const size_t textcoords_size_in_bytes = d_texcoords.size() * sizeof(float2);
+    CUDA_CHECK(cudaMalloc(reinterpret_cast<void**>(&state.d_texcoords), textcoords_size_in_bytes));
+    CUDA_CHECK(cudaMemcpy(
+        reinterpret_cast<void*>(state.d_texcoords),
+        d_texcoords.data(), textcoords_size_in_bytes,
+        cudaMemcpyHostToDevice
+    ));
     CUdeviceptr  d_mat_indices             = 0;
     const size_t mat_indices_size_in_bytes = d_material_indices.size() * sizeof( uint32_t );
     CUDA_CHECK( cudaMalloc( reinterpret_cast<void**>( &d_mat_indices ), mat_indices_size_in_bytes ) );
@@ -1442,48 +1599,50 @@ void createSBT( PathTracerState& state )
                 reinterpret_cast<void**>( &d_hitgroup_records ),
                 hitgroup_record_size * RAY_TYPE_COUNT * MAT_COUNT
                 ) );
-
     std::vector<HitGroupRecord> hitgroup_records;
-    for (int i = 0; i < RAY_TYPE_COUNT * MAT_COUNT; ++i) {
-        hitgroup_records.push_back(HitGroupRecord());
-    }
-    for( int i = 0; i < MAT_COUNT; ++i )
-    {
-        {
-            const int sbt_idx = i * RAY_TYPE_COUNT + 0;  // SBT for radiance ray-type for ith material
-
-            OPTIX_CHECK( optixSbtRecordPackHeader( state.radiance_hit_group, &hitgroup_records[sbt_idx] ) );
-            hitgroup_records[sbt_idx].data.emission_color = d_emission_colors[i];
-            hitgroup_records[sbt_idx].data.diffuse_color  = d_diffuse_colors[i];
-            hitgroup_records[sbt_idx].data.specular_color = d_spec_colors[i];
-            hitgroup_records[sbt_idx].data.spec_exp       = d_spec_exp[i];
-            hitgroup_records[sbt_idx].data.ior            = d_ior[i];
-            hitgroup_records[sbt_idx].data.vertices       = reinterpret_cast<float4*>( state.d_vertices );
-            hitgroup_records[sbt_idx].data.mat            = d_mat_types[i];
+        for (int i = 0; i < RAY_TYPE_COUNT * MAT_COUNT; ++i) {
+            hitgroup_records.push_back(HitGroupRecord());
         }
-
+        for (int i = 0; i < MAT_COUNT; ++i)
         {
-            const int sbt_idx = i * RAY_TYPE_COUNT + 1;  // SBT for occlusion ray-type for ith material
-            memset( &hitgroup_records[sbt_idx], 0, hitgroup_record_size );
+            {
+                int texture_id = 0;
+                const int sbt_idx = i * RAY_TYPE_COUNT + 0;  // SBT for radiance ray-type for ith material
+                OPTIX_CHECK(optixSbtRecordPackHeader(state.radiance_hit_group, &hitgroup_records[sbt_idx]));
+                hitgroup_records[sbt_idx].data.emission_color = d_emission_colors[i];
+                hitgroup_records[sbt_idx].data.diffuse_color = d_diffuse_colors[i];
+                hitgroup_records[sbt_idx].data.specular_color = d_spec_colors[i];
+                hitgroup_records[sbt_idx].data.spec_exp = d_spec_exp[i];
+                hitgroup_records[sbt_idx].data.ior = d_ior[i];
+                hitgroup_records[sbt_idx].data.vertices = reinterpret_cast<float4*>(state.d_vertices);
+                hitgroup_records[sbt_idx].data.mat = d_mat_types[i];
+                if (1) {
+                    hitgroup_records[sbt_idx].data.texture = textureObjects[3];
+                    hitgroup_records[sbt_idx].data.texcoord = reinterpret_cast<float2*>(state.d_texcoords);
+                    texture_id++;
+                }
+            }
 
-            OPTIX_CHECK( optixSbtRecordPackHeader( state.occlusion_hit_group, &hitgroup_records[sbt_idx] ) );
+            {
+                const int sbt_idx = i * RAY_TYPE_COUNT + 1;  // SBT for occlusion ray-type for ith material
+                memset(&hitgroup_records[sbt_idx], 0, hitgroup_record_size);
+
+                OPTIX_CHECK(optixSbtRecordPackHeader(state.occlusion_hit_group, &hitgroup_records[sbt_idx]));
+            }
         }
-    }
-
-    CUDA_CHECK( cudaMemcpy(
-                reinterpret_cast<void*>( d_hitgroup_records ),
-                hitgroup_records.data(),
-                hitgroup_record_size*RAY_TYPE_COUNT*MAT_COUNT,
-                cudaMemcpyHostToDevice
-                ) );
-
+        CUDA_CHECK(cudaMemcpy(
+            reinterpret_cast<void*>(d_hitgroup_records),
+            hitgroup_records.data(),
+            hitgroup_record_size * hitgroup_records.size(),
+            cudaMemcpyHostToDevice
+        ));
     state.sbt.raygenRecord                = d_raygen_record;
     state.sbt.missRecordBase              = d_miss_records;
     state.sbt.missRecordStrideInBytes     = static_cast<uint32_t>( miss_record_size );
     state.sbt.missRecordCount             = RAY_TYPE_COUNT;
     state.sbt.hitgroupRecordBase          = d_hitgroup_records;
     state.sbt.hitgroupRecordStrideInBytes = static_cast<uint32_t>( hitgroup_record_size );
-    state.sbt.hitgroupRecordCount         = RAY_TYPE_COUNT * MAT_COUNT;
+    state.sbt.hitgroupRecordCount         = (int)hitgroup_records.size();
 }
 
 
@@ -1503,6 +1662,7 @@ void cleanupState( PathTracerState& state )
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.missRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.sbt.hitgroupRecordBase ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_vertices ) ) );
+    CUDA_CHECK(cudaFree(reinterpret_cast<void*>(state.d_texcoords)));
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_lights ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.d_gas_output_buffer ) ) );
     CUDA_CHECK( cudaFree( reinterpret_cast<void*>( state.params.accum_buffer ) ) );
@@ -1520,7 +1680,7 @@ int main( int argc, char* argv[] )
 {
     PathTracerState state;
     sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
-    float3 prev_lookat;
+
     //
     // Parse command line options
     //
@@ -1575,7 +1735,6 @@ int main( int argc, char* argv[] )
     {
         // Set up the scene
         readSceneFile(scene_file);
-        prev_lookat = camera.lookat();
         state.params.width = width;
         state.params.height = height;
 
@@ -1605,7 +1764,11 @@ int main( int argc, char* argv[] )
         createModule( state );
         createProgramGroups( state );
         createPipeline( state );
-        createSBT( state );
+        if (MODEL->textures.size() != 0)
+        {
+            createTextures();
+        }
+        createSBT(state);
         initLaunchParams( state );
 
 
@@ -1638,18 +1801,9 @@ int main( int argc, char* argv[] )
                 std::chrono::duration<double> state_update_time( 0.0 );
                 std::chrono::duration<double> render_time( 0.0 );
                 std::chrono::duration<double> display_time( 0.0 );
+
                 do
                 {
-                    float3 curr_lookat = readCameraFile(scene_file);
-                    float3 diff = curr_lookat - prev_lookat;
-                    if (diff.x * diff.x + diff.y * diff.y + diff.z * diff.z >= 1)
-                    {
-                        std::cout << "camera changed!" << std::endl;
-                        trackball.setViewMode(sutil::Trackball::EyeFixed);
-                        camera.setLookat(curr_lookat);
-                        camera_changed = true;
-                        prev_lookat = curr_lookat;
-                    }
                     if (saveRequested) {
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
