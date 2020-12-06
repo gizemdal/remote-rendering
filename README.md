@@ -1,6 +1,6 @@
 # Remote Rendering for XR
 
-![Sneak peek](images/test_3_labeled.png)
+![Sneak peek](images/readme_main_labeled.png)
 
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
