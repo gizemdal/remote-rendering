@@ -473,8 +473,8 @@ extern "C" __global__ void __closesthit__radiance()
                 + u * rt_data->texcoord[vert_idx_offset + 1]
                 + v * rt_data->texcoord[vert_idx_offset + 2];
 
-            float4 fromTexture = tex2D<float4>(rt_data->texture, 0.5, 0.5);
-            rt_data->diffuse_color *= make_float3(1,0,0);
+            float4 fromTexture = tex2D<float4>(rt_data->texture, tc.x, tc.y);
+            rt_data->diffuse_color = make_float3(fromTexture);
             prd->attenuation *= (rt_data->diffuse_color);
         }
         else {

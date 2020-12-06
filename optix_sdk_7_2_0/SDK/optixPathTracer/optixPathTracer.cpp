@@ -53,7 +53,6 @@
 #include <GLFW/glfw3.h>
 #include "optixPathTracer.h"
 #include "tiny_obj_loader.h"
-#include "optixPathTracer/CUDABuffer.h"
 #include <map>
 #include <array>
 #include <cstring>
@@ -218,6 +217,7 @@ struct PathTracerState
 int32_t TRIANGLE_COUNT = 0;
 int32_t MAT_COUNT = 0;
 
+std::vector<int> d_textureIds;
 std::vector<Vertex> d_vertices;
 std::vector<float2> d_texcoords;
 std::vector<Material> d_mat_types;
@@ -229,7 +229,6 @@ std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
 std::vector<Triangle> d_triangles;
 std::vector<Light> d_lights;
-std::vector<CUDABuffer> texcoordBuffer;
 std::vector<cudaArray_t>         textureArrays;
 std::vector<cudaTextureObject_t> textureObjects;
 const Model* MODEL;
@@ -626,6 +625,7 @@ static void addSceneGeometry(Geom type,
         {
             Mesh* mesh = model->meshes[i];
             int material_id = (model->material) ? addMaterial(TEXTURE, make_float3(mesh->diffuse.x,mesh->diffuse.y,mesh->diffuse.z), make_float3(0.f), make_float3(0.f), 0.f, 0.f) : mat_id;
+            d_textureIds.push_back(mesh->diffuseTextureID);
             int triangle_count = 0;
             for (int j = 0; j < mesh->vertex.size(); ++j)
             {
@@ -1603,10 +1603,10 @@ void createSBT( PathTracerState& state )
         for (int i = 0; i < RAY_TYPE_COUNT * MAT_COUNT; ++i) {
             hitgroup_records.push_back(HitGroupRecord());
         }
+        int texture_id = 0;
         for (int i = 0; i < MAT_COUNT; ++i)
         {
             {
-                int texture_id = 0;
                 const int sbt_idx = i * RAY_TYPE_COUNT + 0;  // SBT for radiance ray-type for ith material
                 OPTIX_CHECK(optixSbtRecordPackHeader(state.radiance_hit_group, &hitgroup_records[sbt_idx]));
                 hitgroup_records[sbt_idx].data.emission_color = d_emission_colors[i];
@@ -1616,8 +1616,8 @@ void createSBT( PathTracerState& state )
                 hitgroup_records[sbt_idx].data.ior = d_ior[i];
                 hitgroup_records[sbt_idx].data.vertices = reinterpret_cast<float4*>(state.d_vertices);
                 hitgroup_records[sbt_idx].data.mat = d_mat_types[i];
-                if (1) {
-                    hitgroup_records[sbt_idx].data.texture = textureObjects[3];
+                if (d_mat_types[i] == TEXTURE) {
+                    hitgroup_records[sbt_idx].data.texture = textureObjects[texture_id];
                     hitgroup_records[sbt_idx].data.texcoord = reinterpret_cast<float2*>(state.d_texcoords);
                     texture_id++;
                 }
@@ -1630,6 +1630,7 @@ void createSBT( PathTracerState& state )
                 OPTIX_CHECK(optixSbtRecordPackHeader(state.occlusion_hit_group, &hitgroup_records[sbt_idx]));
             }
         }
+        texture_id = 0;
         CUDA_CHECK(cudaMemcpy(
             reinterpret_cast<void*>(d_hitgroup_records),
             hitgroup_records.data(),
