@@ -53,7 +53,6 @@
 #include <GLFW/glfw3.h>
 #include "optixPathTracer.h"
 #include "tiny_obj_loader.h"
-#include "optixPathTracer/CUDABuffer.h"
 #include <map>
 #include <array>
 #include <cstring>
@@ -229,7 +228,7 @@ std::vector<float> d_spec_exp;
 std::vector<float> d_ior;
 std::vector<Triangle> d_triangles;
 std::vector<Light> d_lights;
-std::vector<CUDABuffer> texcoordBuffer;
+//std::vector<CUDABuffer> texcoordBuffer;
 std::vector<cudaArray_t>         textureArrays;
 std::vector<cudaTextureObject_t> textureObjects;
 const Model* MODEL;
@@ -538,6 +537,9 @@ static void addSceneGeometry(Geom type,
 
         TRIANGLE_COUNT += 12;
 
+        // Add dummy texture coordinates for cube - we must add for each vertex
+        for (int i = 0; i < 36; ++i)
+            d_texcoords.push_back(make_float2(0.f));
         // Add material id to mat indices
         for (int i = 0; i < 12; ++i)
             d_material_indices.push_back(mat_id);
@@ -612,6 +614,8 @@ static void addSceneGeometry(Geom type,
             }
             Vertex v = temp_triangles[i];
             d_vertices.push_back(toVertex(glm::vec3(v.x, v.y, v.z), transform));
+            // Add dummy texture coordinate per vertex
+            d_texcoords.push_back(make_float2(0.f));
         }
         TRIANGLE_COUNT += num_triangles;
     }
@@ -620,6 +624,9 @@ static void addSceneGeometry(Geom type,
         {
             return;
         }
+        // store vertex count before mesh is added
+        int pre_vertex_count = d_vertices.size();
+        int pre_tex_count = d_texcoords.size();
         Model* model = loadMesh(objfile);
         
         for (int i = 0; i < model->meshes.size(); ++i)
@@ -643,10 +650,13 @@ static void addSceneGeometry(Geom type,
         }
         d_triangles.clear();
         MODEL = model;
-        // arbitrary mesh load
-        // TODO: Parse the obj file and add the vertices to d_vertices and for each triangle push the mat_id to d_material_indices
-        // It seems like the current OptiX buffer structure doesn't use indexing so although it's inefficient, we push each vertex multiple times for closed geometry since vertices are shared across multiple faces
-        // Don't forget to update TRIANGLE_COUNT
+        // calculate the difference between pre and post mesh vertex count
+        // use this to add dummy texture coordinates (if necessary)
+        int tex_to_add = d_vertices.size() - pre_vertex_count;
+        if (pre_tex_count == d_texcoords.size()) {
+            for (int i = 0; i < tex_to_add; ++i)
+                d_texcoords.push_back(make_float2(0.f));
+        }
     }
     else if (type == AREA_LIGHT) {
         // We create area lights from 2-D planes
@@ -659,6 +669,10 @@ static void addSceneGeometry(Geom type,
         d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, -0.5f), transform));
         d_vertices.push_back(toVertex(glm::vec3(-0.5f, 0.f, 0.5f), transform));
         d_vertices.push_back(toVertex(glm::vec3(0.5f, 0.f, 0.5f), transform));
+
+        // Add dummy texture coordinates per vertex
+        for (int i = 0; i < 6; ++i)
+            d_texcoords.push_back(make_float2(0.f));
 
         // Push the material id twice, one per triangle
         d_material_indices.push_back(mat_id);
@@ -831,11 +845,6 @@ void initLaunchParams( PathTracerState& state )
     // Get light sources in the scene
     state.params.lights         = reinterpret_cast<Light*>(state.d_lights);
     state.params.num_lights     = d_lights.size();
-    /*state.params.light.emission = make_float3( 10.0f, 10.0f, 10.0f );
-    state.params.light.corner   = make_float3(-2.f, 9.95f, -2.f);
-    state.params.light.v1       = make_float3( 0.0f, 0.0f, -2.0f );
-    state.params.light.v2       = make_float3( 2.0f, 0.0f, 0.0f );
-    state.params.light.normal   = normalize( cross( state.params.light.v1, state.params.light.v2 ) );*/
     state.params.handle         = state.gas_handle;
 
     CUDA_CHECK( cudaStreamCreate( &state.stream ) );
@@ -929,25 +938,6 @@ void displaySubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, sutil::GLD
 static void context_log_cb( unsigned int level, const char* tag, const char* message, void* /*cbdata */ )
 {
     std::cerr << "[" << std::setw( 2 ) << level << "][" << std::setw( 12 ) << tag << "]: " << message << "\n";
-}
-
-
-void initCameraState()
-{
-    camera.setEye( make_float3( -3.7f, 5.f, -2.5f ) );
-    camera.setLookat( make_float3( 0.f, 5.f, 0.f ) );
-    camera.setUp( make_float3( 0.0f, 1.0f, 0.0f ) );
-    camera.setFovY( 45.0f );
-    camera_changed = true;
-
-    trackball.setCamera( &camera );
-    trackball.setMoveSpeed( 10.0f );
-    trackball.setReferenceFrame(
-            make_float3( 1.0f, 0.0f, 0.0f ),
-            make_float3( 0.0f, 0.0f, 1.0f ),
-            make_float3( 0.0f, 1.0f, 0.0f )
-            );
-    trackball.setGimbalLock( true );
 }
 
 void readSceneFile(std::string& scene_file)
@@ -1603,10 +1593,10 @@ void createSBT( PathTracerState& state )
         for (int i = 0; i < RAY_TYPE_COUNT * MAT_COUNT; ++i) {
             hitgroup_records.push_back(HitGroupRecord());
         }
+        int texture_id = 0;
         for (int i = 0; i < MAT_COUNT; ++i)
         {
             {
-                int texture_id = 0;
                 const int sbt_idx = i * RAY_TYPE_COUNT + 0;  // SBT for radiance ray-type for ith material
                 OPTIX_CHECK(optixSbtRecordPackHeader(state.radiance_hit_group, &hitgroup_records[sbt_idx]));
                 hitgroup_records[sbt_idx].data.emission_color = d_emission_colors[i];
@@ -1616,8 +1606,13 @@ void createSBT( PathTracerState& state )
                 hitgroup_records[sbt_idx].data.ior = d_ior[i];
                 hitgroup_records[sbt_idx].data.vertices = reinterpret_cast<float4*>(state.d_vertices);
                 hitgroup_records[sbt_idx].data.mat = d_mat_types[i];
-                if (1) {
-                    hitgroup_records[sbt_idx].data.texture = textureObjects[3];
+                if (d_mat_types[i] == TEXTURE) {
+                    if (textureObjects.size() > texture_id) {
+                        hitgroup_records[sbt_idx].data.texture = textureObjects[texture_id];
+                    }
+                    else {
+                        hitgroup_records[sbt_idx].data.texture = textureObjects[0];
+                    }
                     hitgroup_records[sbt_idx].data.texcoord = reinterpret_cast<float2*>(state.d_texcoords);
                     texture_id++;
                 }
@@ -1737,24 +1732,6 @@ int main( int argc, char* argv[] )
         readSceneFile(scene_file);
         state.params.width = width;
         state.params.height = height;
-
-        // Set up the scene
-        // First add materials
-        /*addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 1.f, 1.f), 0.f, 0.f); // light material
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(20.f, 20.f, 20.f), 0.f, 0.f); // light material
-        addMaterial(EMISSIVE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(5.f, 5.f, 5.f), 0.f, 0.f); // light material
-        addMaterial(DIFFUSE, make_float3(1.f, 1.f, 1.f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse white
-        addMaterial(DIFFUSE, make_float3(0.05f, 0.80f, 0.80f), make_float3(0.f), make_float3(0.f), 25.5f, 0.f); // diffuse cyan
-        addMaterial(DIFFUSE, make_float3(0.80f, 0.05f, 0.80f), make_float3(0.f), make_float3(0.f), 0.f, 0.f); // diffuse magenta
-        addMaterial(FRESNEL, make_float3(1.f, 0.60f, 0.80f), make_float3(1.f, 0.60f, 0.80f), make_float3(0.f), 0.f, 5.4f); // pink fresnel
-        addMaterial(FRESNEL, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 5.4f); // white fresnel
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 10.f, 0.f); // glossy white 1
-        addMaterial(GLOSSY, make_float3(0.80f, 0.80f, 0.80f), make_float3(0.80f, 0.80f, 0.80f), make_float3(0.f), 40.f, 0.f); // glossy white 2
-        addMaterial(MIRROR, make_float3(1.f, 1.f, 1.f), make_float3(1.f, 1.f, 1.f), make_float3(0.f), 0.f, 0.f); // perfect specular mirror
-
-        // Then add geometry
-        addSceneGeometry(POINT_LIGHT, 1, glm::vec3(0, 10, 0), glm::vec3(0, 0, 0), glm::vec3(3, .3, 3), ""); // ceiling light
-        addSceneGeometry(MESH, 3, glm::vec3(-10, 0, 0), glm::vec3(0, 0, 0), glm::vec3(0.03, 0.03, 0.03), "../../data/Sponza/sponza.obj");*/
 
         //
         // Set up OptiX state
