@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,10 +11,6 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-/// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -44,11 +40,11 @@
 /// <glm/gtc/type_precision.hpp> need to be included to use these functionalities.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef GLM_GTC_type_precision
+#define GLM_GTC_type_precision
 
 // Dependency:
 #include "../gtc/quaternion.hpp"
-#include "../gtc/vec1.hpp"
 #include "../vec2.hpp"
 #include "../vec3.hpp"
 #include "../vec4.hpp"
@@ -235,12 +231,6 @@ namespace glm
 	/// @see gtc_type_precision
 	typedef detail::int64 int64;
 
-#if GLM_HAS_EXTENDED_INTEGER_TYPE
-	using std::int8_t;
-	using std::int16_t;
-	using std::int32_t;
-	using std::int64_t;
-#else
 	/// 8 bit signed integer type.
 	/// @see gtc_type_precision
 	typedef detail::int8 int8_t;
@@ -256,7 +246,6 @@ namespace glm
 	/// 64 bit signed integer type.
 	/// @see gtc_type_precision
 	typedef detail::int64 int64_t;
-#endif
 
 	/// 8 bit signed integer type.
 	/// @see gtc_type_precision
@@ -277,70 +266,70 @@ namespace glm
 
 	/// 8 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i8, defaultp> i8vec1;
+	typedef detail::tvec1<i8, defaultp> i8vec1;
 	
 	/// 8 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i8, defaultp> i8vec2;
+	typedef detail::tvec2<i8, defaultp> i8vec2;
 
 	/// 8 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i8, defaultp> i8vec3;
+	typedef detail::tvec3<i8, defaultp> i8vec3;
 
 	/// 8 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i8, defaultp> i8vec4;
+	typedef detail::tvec4<i8, defaultp> i8vec4;
 
 
 	/// 16 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i16, defaultp> i16vec1;
+	typedef detail::tvec1<i16, defaultp> i16vec1;
 	
 	/// 16 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i16, defaultp> i16vec2;
+	typedef detail::tvec2<i16, defaultp> i16vec2;
 
 	/// 16 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i16, defaultp> i16vec3;
+	typedef detail::tvec3<i16, defaultp> i16vec3;
 
 	/// 16 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i16, defaultp> i16vec4;
+	typedef detail::tvec4<i16, defaultp> i16vec4;
 
 
 	/// 32 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i32, defaultp> i32vec1;
+	typedef detail::tvec1<i32, defaultp> i32vec1;
 	
 	/// 32 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i32, defaultp> i32vec2;
+	typedef detail::tvec2<i32, defaultp> i32vec2;
 
 	/// 32 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i32, defaultp> i32vec3;
+	typedef detail::tvec3<i32, defaultp> i32vec3;
 
 	/// 32 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i32, defaultp> i32vec4;
+	typedef detail::tvec4<i32, defaultp> i32vec4;
 
 
 	/// 64 bit signed integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<i64, defaultp> i64vec1;
+	typedef detail::tvec1<i64, defaultp> i64vec1;
 	
 	/// 64 bit signed integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<i64, defaultp> i64vec2;
+	typedef detail::tvec2<i64, defaultp> i64vec2;
 
 	/// 64 bit signed integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<i64, defaultp> i64vec3;
+	typedef detail::tvec3<i64, defaultp> i64vec3;
 
 	/// 64 bit signed integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<i64, defaultp> i64vec4;
+	typedef detail::tvec4<i64, defaultp> i64vec4;
 
 
 	/////////////////////////////
@@ -506,12 +495,6 @@ namespace glm
 	/// @see gtc_type_precision
 	typedef detail::uint64 uint64;
 
-#if GLM_HAS_EXTENDED_INTEGER_TYPE
-	using std::uint8_t;
-	using std::uint16_t;
-	using std::uint32_t;
-	using std::uint64_t;
-#else
 	/// Default precision 8 bit unsigned integer type.
 	/// @see gtc_type_precision
 	typedef detail::uint8 uint8_t;
@@ -527,7 +510,6 @@ namespace glm
 	/// Default precision 64 bit unsigned integer type.
 	/// @see gtc_type_precision
 	typedef detail::uint64 uint64_t;
-#endif
 
 	/// Default precision 8 bit unsigned integer type.
 	/// @see gtc_type_precision
@@ -549,70 +531,70 @@ namespace glm
 
 	/// Default precision 8 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u8, defaultp> u8vec1;
+	typedef detail::tvec1<u8, defaultp> u8vec1;
 	
 	/// Default precision 8 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u8, defaultp> u8vec2;
+	typedef detail::tvec2<u8, defaultp> u8vec2;
 
 	/// Default precision 8 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u8, defaultp> u8vec3;
+	typedef detail::tvec3<u8, defaultp> u8vec3;
 
 	/// Default precision 8 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u8, defaultp> u8vec4;
+	typedef detail::tvec4<u8, defaultp> u8vec4;
 
 
 	/// Default precision 16 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u16, defaultp> u16vec1;
+	typedef detail::tvec1<u16, defaultp> u16vec1;
 	
 	/// Default precision 16 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u16, defaultp> u16vec2;
+	typedef detail::tvec2<u16, defaultp> u16vec2;
 
 	/// Default precision 16 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u16, defaultp> u16vec3;
+	typedef detail::tvec3<u16, defaultp> u16vec3;
 
 	/// Default precision 16 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u16, defaultp> u16vec4;
+	typedef detail::tvec4<u16, defaultp> u16vec4;
 
 
 	/// Default precision 32 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u32, defaultp> u32vec1;
+	typedef detail::tvec1<u32, defaultp> u32vec1;
 	
 	/// Default precision 32 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u32, defaultp> u32vec2;
+	typedef detail::tvec2<u32, defaultp> u32vec2;
 
 	/// Default precision 32 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u32, defaultp> u32vec3;
+	typedef detail::tvec3<u32, defaultp> u32vec3;
 
 	/// Default precision 32 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u32, defaultp> u32vec4;
+	typedef detail::tvec4<u32, defaultp> u32vec4;
 
 
 	/// Default precision 64 bit unsigned integer scalar type.
 	/// @see gtc_type_precision
-	typedef tvec1<u64, defaultp> u64vec1;
+	typedef detail::tvec1<u64, defaultp> u64vec1;
 	
 	/// Default precision 64 bit unsigned integer vector of 2 components type.
 	/// @see gtc_type_precision
-	typedef tvec2<u64, defaultp> u64vec2;
+	typedef detail::tvec2<u64, defaultp> u64vec2;
 
 	/// Default precision 64 bit unsigned integer vector of 3 components type.
 	/// @see gtc_type_precision
-	typedef tvec3<u64, defaultp> u64vec3;
+	typedef detail::tvec3<u64, defaultp> u64vec3;
 
 	/// Default precision 64 bit unsigned integer vector of 4 components type.
 	/// @see gtc_type_precision
-	typedef tvec4<u64, defaultp> u64vec4;
+	typedef detail::tvec4<u64, defaultp> u64vec4;
 
 
 	//////////////////////
@@ -647,53 +629,53 @@ namespace glm
 
 	/// Single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<float, defaultp> fvec1;
+	typedef detail::tvec1<float, defaultp> fvec1;
 
 	/// Single-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<float, defaultp> fvec2;
+	typedef detail::tvec2<float, defaultp> fvec2;
 
 	/// Single-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<float, defaultp> fvec3;
+	typedef detail::tvec3<float, defaultp> fvec3;
 
 	/// Single-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<float, defaultp> fvec4;
+	typedef detail::tvec4<float, defaultp> fvec4;
 
 	
 	/// Single-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f32, defaultp> f32vec1;
+	typedef detail::tvec1<f32, defaultp> f32vec1;
 
 	/// Single-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f32, defaultp> f32vec2;
+	typedef detail::tvec2<f32, defaultp> f32vec2;
 
 	/// Single-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f32, defaultp> f32vec3;
+	typedef detail::tvec3<f32, defaultp> f32vec3;
 
 	/// Single-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f32, defaultp> f32vec4;
+	typedef detail::tvec4<f32, defaultp> f32vec4;
 
 
 	/// Double-precision floating-point vector of 1 component.
 	/// @see gtc_type_precision
-	typedef tvec1<f64, defaultp> f64vec1;
+	typedef detail::tvec1<f64, defaultp> f64vec1;
 
 	/// Double-precision floating-point vector of 2 components.
 	/// @see gtc_type_precision
-	typedef tvec2<f64, defaultp> f64vec2;
+	typedef detail::tvec2<f64, defaultp> f64vec2;
 
 	/// Double-precision floating-point vector of 3 components.
 	/// @see gtc_type_precision
-	typedef tvec3<f64, defaultp> f64vec3;
+	typedef detail::tvec3<f64, defaultp> f64vec3;
 
 	/// Double-precision floating-point vector of 4 components.
 	/// @see gtc_type_precision
-	typedef tvec4<f64, defaultp> f64vec4;
+	typedef detail::tvec4<f64, defaultp> f64vec4;
 
 
 	//////////////////////
@@ -705,15 +687,15 @@ namespace glm
 
 	/// Single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, defaultp> fmat2;
+	typedef detail::tmat2x2<f32, defaultp> fmat2;
 
 	/// Single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, defaultp> fmat3;
+	typedef detail::tmat3x3<f32, defaultp> fmat3;
 
 	/// Single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, defaultp> fmat4;
+	typedef detail::tmat4x4<f32, defaultp> fmat4;
 
 
 	/// Single-precision floating-point 1x1 matrix.
@@ -722,39 +704,39 @@ namespace glm
 
 	/// Single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, defaultp> fmat2x2;
+	typedef detail::tmat2x2<f32, defaultp> fmat2x2;
 
 	/// Single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, defaultp> fmat2x3;
+	typedef detail::tmat2x3<f32, defaultp> fmat2x3;
 
 	/// Single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, defaultp> fmat2x4;
+	typedef detail::tmat2x4<f32, defaultp> fmat2x4;
 
 	/// Single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, defaultp> fmat3x2;
+	typedef detail::tmat3x2<f32, defaultp> fmat3x2;
 
 	/// Single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, defaultp> fmat3x3;
+	typedef detail::tmat3x3<f32, defaultp> fmat3x3;
 
 	/// Single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, defaultp> fmat3x4;
+	typedef detail::tmat3x4<f32, defaultp> fmat3x4;
 
 	/// Single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, defaultp> fmat4x2;
+	typedef detail::tmat4x2<f32, defaultp> fmat4x2;
 
 	/// Single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, defaultp> fmat4x3;
+	typedef detail::tmat4x3<f32, defaultp> fmat4x3;
 
 	/// Single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, defaultp> fmat4x4;
+	typedef detail::tmat4x4<f32, defaultp> fmat4x4;
 
 
 	/// Single-precision floating-point 1x1 matrix.
@@ -763,15 +745,15 @@ namespace glm
 
 	/// Single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, defaultp> f32mat2;
+	typedef detail::tmat2x2<f32, defaultp> f32mat2;
 
 	/// Single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, defaultp> f32mat3;
+	typedef detail::tmat3x3<f32, defaultp> f32mat3;
 
 	/// Single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, defaultp> f32mat4;
+	typedef detail::tmat4x4<f32, defaultp> f32mat4;
 
 
 	/// Single-precision floating-point 1x1 matrix.
@@ -780,39 +762,39 @@ namespace glm
 
 	/// Single-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f32, defaultp> f32mat2x2;
+	typedef detail::tmat2x2<f32, defaultp> f32mat2x2;
 
 	/// Single-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f32, defaultp> f32mat2x3;
+	typedef detail::tmat2x3<f32, defaultp> f32mat2x3;
 
 	/// Single-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f32, defaultp> f32mat2x4;
+	typedef detail::tmat2x4<f32, defaultp> f32mat2x4;
 
 	/// Single-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f32, defaultp> f32mat3x2;
+	typedef detail::tmat3x2<f32, defaultp> f32mat3x2;
 
 	/// Single-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f32, defaultp> f32mat3x3;
+	typedef detail::tmat3x3<f32, defaultp> f32mat3x3;
 
 	/// Single-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f32, defaultp> f32mat3x4;
+	typedef detail::tmat3x4<f32, defaultp> f32mat3x4;
 
 	/// Single-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f32, defaultp> f32mat4x2;
+	typedef detail::tmat4x2<f32, defaultp> f32mat4x2;
 
 	/// Single-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f32, defaultp> f32mat4x3;
+	typedef detail::tmat4x3<f32, defaultp> f32mat4x3;
 
 	/// Single-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f32, defaultp> f32mat4x4;
+	typedef detail::tmat4x4<f32, defaultp> f32mat4x4;
 
 
 	/// Double-precision floating-point 1x1 matrix.
@@ -821,15 +803,15 @@ namespace glm
 
 	/// Double-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f64, defaultp> f64mat2;
+	typedef detail::tmat2x2<f64, defaultp> f64mat2;
 
 	/// Double-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f64, defaultp> f64mat3;
+	typedef detail::tmat3x3<f64, defaultp> f64mat3;
 
 	/// Double-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f64, defaultp> f64mat4;
+	typedef detail::tmat4x4<f64, defaultp> f64mat4;
 
 
 	/// Double-precision floating-point 1x1 matrix.
@@ -838,39 +820,39 @@ namespace glm
 
 	/// Double-precision floating-point 2x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x2<f64, defaultp> f64mat2x2;
+	typedef detail::tmat2x2<f64, defaultp> f64mat2x2;
 
 	/// Double-precision floating-point 2x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x3<f64, defaultp> f64mat2x3;
+	typedef detail::tmat2x3<f64, defaultp> f64mat2x3;
 
 	/// Double-precision floating-point 2x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat2x4<f64, defaultp> f64mat2x4;
+	typedef detail::tmat2x4<f64, defaultp> f64mat2x4;
 
 	/// Double-precision floating-point 3x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x2<f64, defaultp> f64mat3x2;
+	typedef detail::tmat3x2<f64, defaultp> f64mat3x2;
 
 	/// Double-precision floating-point 3x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x3<f64, defaultp> f64mat3x3;
+	typedef detail::tmat3x3<f64, defaultp> f64mat3x3;
 
 	/// Double-precision floating-point 3x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat3x4<f64, defaultp> f64mat3x4;
+	typedef detail::tmat3x4<f64, defaultp> f64mat3x4;
 
 	/// Double-precision floating-point 4x2 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x2<f64, defaultp> f64mat4x2;
+	typedef detail::tmat4x2<f64, defaultp> f64mat4x2;
 
 	/// Double-precision floating-point 4x3 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x3<f64, defaultp> f64mat4x3;
+	typedef detail::tmat4x3<f64, defaultp> f64mat4x3;
 
 	/// Double-precision floating-point 4x4 matrix.
 	/// @see gtc_type_precision
-	typedef tmat4x4<f64, defaultp> f64mat4x4;
+	typedef detail::tmat4x4<f64, defaultp> f64mat4x4;
 
 
 	//////////////////////////
@@ -878,13 +860,15 @@ namespace glm
 
 	/// Single-precision floating-point quaternion.
 	/// @see gtc_type_precision
-	typedef tquat<f32, defaultp> f32quat;
+	typedef detail::tquat<f32, defaultp> f32quat;
 
 	/// Double-precision floating-point quaternion.
 	/// @see gtc_type_precision
-	typedef tquat<f64, defaultp> f64quat;
+	typedef detail::tquat<f64, defaultp> f64quat;
 
 	/// @}
 }//namespace glm
 
 #include "type_precision.inl"
+
+#endif//GLM_GTC_type_precision

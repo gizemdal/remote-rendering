@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -12,10 +12,6 @@
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
 /// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +21,7 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/detail/func_exponential.hpp
+/// @file glm/core/func_exponential.hpp
 /// @date 2008-08-08 / 2011-06-14
 /// @author Christophe Riccio
 /// 
@@ -37,7 +33,8 @@
 /// These all operate component-wise. The description is per component.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef glm_core_func_exponential
+#define glm_core_func_exponential
 
 #include "type_vec1.hpp"
 #include "type_vec2.hpp"
@@ -52,81 +49,84 @@ namespace glm
 
 	/// Returns 'base' raised to the power 'exponent'. 
 	///
-	/// @param base Floating point value. pow function is defined for input values of 'base' defined in the range (inf-, inf+) in the limit of the type precision.
+	/// @param base Floating point value. pow function is defined for input values of x defined in the range (inf-, inf+) in the limit of the type precision.
 	/// @param exponent Floating point value representing the 'exponent'.
 	/// @tparam genType Floating-point scalar or vector types.
 	///
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/pow.xml">GLSL pow man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> pow(vecType<T, P> const & base, vecType<T, P> const & exponent);
+	template <typename genType> 
+	GLM_FUNC_DECL genType pow(genType const & base, genType const & exponent);
 
 	/// Returns the natural exponentiation of x, i.e., e^x.
 	///
-	/// @param v exp function is defined for input values of v defined in the range (inf-, inf+) in the limit of the type precision.
+	/// @param x exp function is defined for input values of x defined in the range (inf-, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/exp.xml">GLSL exp man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> exp(vecType<T, P> const & v);
+	template <typename genType> 
+	GLM_FUNC_DECL genType exp(genType const & x);
 
-	/// Returns the natural logarithm of v, i.e., 
+	/// Returns the natural logarithm of x, i.e., 
 	/// returns the value y which satisfies the equation x = e^y. 
-	/// Results are undefined if v <= 0.
+	/// Results are undefined if x <= 0.
 	///
-	/// @param v log function is defined for input values of v defined in the range (0, inf+) in the limit of the type precision.
+	/// @param x log function is defined for input values of x defined in the range (0, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/log.xml">GLSL log man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> log(vecType<T, P> const & v);
+	template <typename genType> 
+	GLM_FUNC_DECL genType log(genType const & x);
 
-	/// Returns 2 raised to the v power.
+	/// Returns 2 raised to the x power.
 	/// 
-	/// @param v exp2 function is defined for input values of v defined in the range (inf-, inf+) in the limit of the type precision.
+	/// @param x exp2 function is defined for input values of x defined in the range (inf-, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/exp2.xml">GLSL exp2 man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> exp2(vecType<T, P> const & v);
+	template <typename genType> 
+	GLM_FUNC_DECL genType exp2(genType const & x);
 
 	/// Returns the base 2 log of x, i.e., returns the value y, 
 	/// which satisfies the equation x = 2 ^ y.
 	/// 
-	/// @param v log2 function is defined for input values of v defined in the range (0, inf+) in the limit of the type precision.
+	/// @param x log2 function is defined for input values of x defined in the range (0, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	///
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/log2.xml">GLSL log2 man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> log2(vecType<T, P> const & v);
+	template <typename genType>
+	GLM_FUNC_DECL genType log2(genType x);
 
-	/// Returns the positive square root of v.
+	/// Returns the positive square root of x.
 	/// 
-	/// @param v sqrt function is defined for input values of v defined in the range [0, inf+) in the limit of the type precision.
+	/// @param x sqrt function is defined for input values of x defined in the range [0, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/sqrt.xml">GLSL sqrt man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
 	//template <typename genType>
 	//GLM_FUNC_DECL genType sqrt(genType const & x);
+
 	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> sqrt(vecType<T, P> const & v);
+	GLM_FUNC_DECL vecType<T, P> sqrt(vecType<T, P> const & x);
 	
-	/// Returns the reciprocal of the positive square root of v.
+	/// Returns the reciprocal of the positive square root of x.
 	/// 
-	/// @param v inversesqrt function is defined for input values of v defined in the range [0, inf+) in the limit of the type precision.
+	/// @param x inversesqrt function is defined for input values of x defined in the range [0, inf+) in the limit of the type precision.
 	/// @tparam genType Floating-point scalar or vector types.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/inversesqrt.xml">GLSL inversesqrt man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.2 Exponential Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> inversesqrt(vecType<T, P> const & v);
+	template <typename genType> 
+	GLM_FUNC_DECL genType inversesqrt(genType const & x);
 
 	/// @}
 }//namespace glm
 
 #include "func_exponential.inl"
+
+#endif//glm_core_func_exponential

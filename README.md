@@ -85,11 +85,15 @@ Every camera add must follow this argument pattern: ```CAMERA (render width) (re
 
 ## Streaming & Network
 
-For each frame cycle, the frame buffer is dumped into an image file on device memory. This frame is read by the desktop server application and sent to the Hololens application. Networking is done using Unity's UNet. 
+For each frame cycle, the frame buffer is dumped into an image file on device memory. This frame is read by the desktop server application and sent to the HoloLens 2 application. Networking is done using Unity's UNet. 
 
-| Server-Client Frame Streaming <br />(Running on same Machine) | Raytracer to Android Frame streaming<br />(Running on different Machines) |
-| :----------------------------------------------------------: | :----------------------------------------------------------: |
-| <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> |
+<img src="images/diagramNetworking.png" alt="Area Lights" width=500>
+
+
+
+| Milestone 1: Server-Client Frame Streaming <br />(Running on same Machine) | Milestone 2: Raytracer to Android Frame streaming<br />(Running on different Machines) | Milestone 3: Desktop Server to Hololens 2                    |
+| :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
+| <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
 
 <a name="resources"/>
 

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,10 +11,6 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-/// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -42,7 +38,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tvec2<T, P> const & vec
+		detail::tvec2<T, P> const & vec
 	)
 	{
 		return &(vec.x);
@@ -53,7 +49,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tvec2<T, P> & vec
+		detail::tvec2<T, P> & vec
 	)
 	{
 		return &(vec.x);
@@ -64,7 +60,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tvec3<T, P> const & vec
+		detail::tvec3<T, P> const & vec
 	)
 	{
 		return &(vec.x);
@@ -75,7 +71,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tvec3<T, P> & vec
+		detail::tvec3<T, P> & vec
 	)
 	{
 		return &(vec.x);
@@ -86,7 +82,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(	
-		tvec4<T, P> const & vec
+		detail::tvec4<T, P> const & vec
 	)
 	{
 		return &(vec.x);
@@ -97,7 +93,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(	
-		tvec4<T, P> & vec
+		detail::tvec4<T, P> & vec
 	)
 	{
 		return &(vec.x);
@@ -108,7 +104,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat2x2<T, P> const & mat
+		detail::tmat2x2<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -119,7 +115,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat2x2<T, P> & mat
+		detail::tmat2x2<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -130,7 +126,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat3x3<T, P> const & mat
+		detail::tmat3x3<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -141,7 +137,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat3x3<T, P> & mat
+		detail::tmat3x3<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -152,7 +148,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat4x4<T, P> const & mat
+		detail::tmat4x4<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -163,7 +159,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat4x4<T, P> & mat
+		detail::tmat4x4<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -174,29 +170,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat2x3<T, P> const & mat
-	)
-	{
-		return &(mat[0].x);
-	}
-
-	//! Return the address to the data of the matrix input.
-	/// @see gtc_type_ptr
-	template<typename T, precision P>
-	GLM_FUNC_QUALIFIER T * value_ptr
-	(
-		tmat2x3<T, P> & mat
-	)
-	{
-		return &(mat[0].x);
-	}
-		
-	/// Return the constant address to the data of the matrix input.
-	/// @see gtc_type_ptr
-	template<typename T, precision P>
-	GLM_FUNC_QUALIFIER T const * value_ptr
-	(
-		tmat3x2<T, P> const & mat
+		detail::tmat2x3<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -207,7 +181,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat3x2<T, P> & mat
+		detail::tmat2x3<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -218,7 +192,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat2x4<T, P> const & mat
+		detail::tmat3x2<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -229,7 +203,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat2x4<T, P> & mat
+		detail::tmat3x2<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -240,7 +214,29 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat4x2<T, P> const & mat
+		detail::tmat2x4<T, P> const & mat
+	)
+	{
+		return &(mat[0].x);
+	}
+
+	//! Return the address to the data of the matrix input.
+	/// @see gtc_type_ptr
+	template<typename T, precision P>
+	GLM_FUNC_QUALIFIER T * value_ptr
+	(
+		detail::tmat2x4<T, P> & mat
+	)
+	{
+		return &(mat[0].x);
+	}
+		
+	/// Return the constant address to the data of the matrix input.
+	/// @see gtc_type_ptr
+	template<typename T, precision P>
+	GLM_FUNC_QUALIFIER T const * value_ptr
+	(
+		detail::tmat4x2<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -251,7 +247,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(	
-		tmat4x2<T, P> & mat
+		detail::tmat4x2<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -262,7 +258,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat3x4<T, P> const & mat
+		detail::tmat3x4<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -273,7 +269,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tmat3x4<T, P> & mat
+		detail::tmat3x4<T, P> & mat
 	)
 	{
 		return &(mat[0].x);
@@ -284,7 +280,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tmat4x3<T, P> const & mat
+		detail::tmat4x3<T, P> const & mat
 	)
 	{
 		return &(mat[0].x);
@@ -293,7 +289,7 @@ namespace glm
 	/// Return the address to the data of the matrix input.
 	/// @see gtc_type_ptr
 	template<typename T, precision P>
-	GLM_FUNC_QUALIFIER T * value_ptr(tmat4x3<T, P> & mat)
+	GLM_FUNC_QUALIFIER T * value_ptr(detail::tmat4x3<T, P> & mat)
 	{
 		return &(mat[0].x);
 	}
@@ -303,7 +299,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T const * value_ptr
 	(
-		tquat<T, P> const & q
+		detail::tquat<T, P> const & q
 	)
 	{
 		return &(q[0]);
@@ -314,7 +310,7 @@ namespace glm
 	template<typename T, precision P>
 	GLM_FUNC_QUALIFIER T * value_ptr
 	(
-		tquat<T, P> & q
+		detail::tquat<T, P> & q
 	)
 	{
 		return &(q[0]);
@@ -323,127 +319,127 @@ namespace glm
 	/// Build a vector from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tvec2<T, defaultp> make_vec2(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tvec2<T, defaultp> make_vec2(T const * const ptr)
 	{
-		tvec2<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tvec2<T, defaultp>));
+		detail::tvec2<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tvec2<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a vector from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tvec3<T, defaultp> make_vec3(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tvec3<T, defaultp> make_vec3(T const * const ptr)
 	{
-		tvec3<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tvec3<T, defaultp>));
+		detail::tvec3<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tvec3<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a vector from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tvec4<T, defaultp> make_vec4(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tvec4<T, defaultp> make_vec4(T const * const ptr)
 	{
-		tvec4<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tvec4<T, defaultp>));
+		detail::tvec4<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tvec4<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat2x2<T, defaultp> make_mat2x2(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat2x2<T, defaultp> make_mat2x2(T const * const ptr)
 	{
-		tmat2x2<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat2x2<T, defaultp>));
+		detail::tmat2x2<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat2x2<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat2x3<T, defaultp> make_mat2x3(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat2x3<T, defaultp> make_mat2x3(T const * const ptr)
 	{
-		tmat2x3<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat2x3<T, defaultp>));
+		detail::tmat2x3<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat2x3<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat2x4<T, defaultp> make_mat2x4(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat2x4<T, defaultp> make_mat2x4(T const * const ptr)
 	{
-		tmat2x4<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat2x4<T, defaultp>));
+		detail::tmat2x4<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat2x4<T, defaultp>));
 		return Result;
 	}
 
 	/// Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat3x2<T, defaultp> make_mat3x2(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat3x2<T, defaultp> make_mat3x2(T const * const ptr)
 	{
-		tmat3x2<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat3x2<T, defaultp>));
+		detail::tmat3x2<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat3x2<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat3x3<T, defaultp> make_mat3x3(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat3x3<T, defaultp> make_mat3x3(T const * const ptr)
 	{
-		tmat3x3<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat3x3<T, defaultp>));
+		detail::tmat3x3<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat3x3<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat3x4<T, defaultp> make_mat3x4(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat3x4<T, defaultp> make_mat3x4(T const * const ptr)
 	{
-		tmat3x4<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat3x4<T, defaultp>));
+		detail::tmat3x4<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat3x4<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat4x2<T, defaultp> make_mat4x2(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat4x2<T, defaultp> make_mat4x2(T const * const ptr)
 	{
-		tmat4x2<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat4x2<T, defaultp>));
+		detail::tmat4x2<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat4x2<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat4x3<T, defaultp> make_mat4x3(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat4x3<T, defaultp> make_mat4x3(T const * const ptr)
 	{
-		tmat4x3<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat4x3<T, defaultp>));
+		detail::tmat4x3<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat4x3<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat4x4<T, defaultp> make_mat4x4(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat4x4<T, defaultp> make_mat4x4(T const * const ptr)
 	{
-		tmat4x4<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tmat4x4<T, defaultp>));
+		detail::tmat4x4<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tmat4x4<T, defaultp>));
 		return Result;
 	}
 
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat2x2<T, defaultp> make_mat2(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat2x2<T, defaultp> make_mat2(T const * const ptr)
 	{
 		return make_mat2x2(ptr);
 	}
@@ -451,7 +447,7 @@ namespace glm
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat3x3<T, defaultp> make_mat3(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat3x3<T, defaultp> make_mat3(T const * const ptr)
 	{
 		return make_mat3x3(ptr);
 	}
@@ -459,7 +455,7 @@ namespace glm
 	//! Build a matrix from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tmat4x4<T, defaultp> make_mat4(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tmat4x4<T, defaultp> make_mat4(T const * const ptr)
 	{
 		return make_mat4x4(ptr);
 	}
@@ -467,10 +463,10 @@ namespace glm
 	//! Build a quaternion from a pointer.
 	/// @see gtc_type_ptr
 	template <typename T>
-	GLM_FUNC_QUALIFIER tquat<T, defaultp> make_quat(T const * const ptr)
+	GLM_FUNC_QUALIFIER detail::tquat<T, defaultp> make_quat(T const * const ptr)
 	{
-		tquat<T, defaultp> Result;
-		memcpy(value_ptr(Result), ptr, sizeof(tquat<T, defaultp>));
+		detail::tquat<T, defaultp> Result;
+		memcpy(value_ptr(Result), ptr, sizeof(detail::tquat<T, defaultp>));
 		return Result;
 	}
 

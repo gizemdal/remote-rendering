@@ -1630,7 +1630,7 @@ int main( int argc, char* argv[] )
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 
-                    sutil::displayStats( state_update_time, render_time, display_time );
+                    //sutil::displayStats( state_update_time, render_time, display_time );
 
                     glfwSwapBuffers( window );
 

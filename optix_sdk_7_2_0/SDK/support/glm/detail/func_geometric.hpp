@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -12,10 +12,6 @@
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
 /// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,7 +21,7 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/detail/func_geometric.hpp
+/// @file glm/core/func_geometric.hpp
 /// @date 2008-08-03 / 2011-06-14
 /// @author Christophe Riccio
 ///
@@ -37,7 +33,8 @@
 /// These operate on vectors as vectors, not component-wise.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef glm_core_func_geometric
+#define glm_core_func_geometric
 
 #include "type_vec3.hpp"
 
@@ -52,9 +49,9 @@ namespace glm
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/length.xml">GLSL length man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL T length(
-		vecType<T, P> const & x);
+	template <typename genType> 
+	GLM_FUNC_DECL typename genType::value_type length(
+		genType const & x); 
 
 	/// Returns the distance betwwen p0 and p1, i.e., length(p0 - p1).
 	///
@@ -62,10 +59,10 @@ namespace glm
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/distance.xml">GLSL distance man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL T distance(
-		vecType<T, P> const & p0,
-		vecType<T, P> const & p1);
+	template <typename genType> 
+	GLM_FUNC_DECL typename genType::value_type distance(
+		genType const & p0, 
+		genType const & p1);
 
 	/// Returns the dot product of x and y, i.e., result = x * y.
 	///
@@ -78,6 +75,17 @@ namespace glm
 		vecType<T, P> const & x,
 		vecType<T, P> const & y);
 
+	/// Returns the dot product of x and y, i.e., result = x * y.
+	///
+	/// @tparam genType Floating-point vector types.
+	/// 
+	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/dot.xml">GLSL dot man page</a>
+	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
+	template <typename genType>
+	GLM_FUNC_DECL genType dot(
+		genType const & x,
+		genType const & y);
+
 	/// Returns the cross product of x and y.
 	///
 	/// @tparam valType Floating-point scalar types.
@@ -85,18 +93,17 @@ namespace glm
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/cross.xml">GLSL cross man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
 	template <typename T, precision P>
-	GLM_FUNC_DECL tvec3<T, P> cross(
-		tvec3<T, P> const & x,
-		tvec3<T, P> const & y);
+	GLM_FUNC_DECL detail::tvec3<T, P> cross(
+		detail::tvec3<T, P> const & x,
+		detail::tvec3<T, P> const & y);
 
 	/// Returns a vector in the same direction as x but with length of 1.
-	/// According to issue 10 GLSL 1.10 specification, if length(x) == 0 then result is undefined and generate an error.
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/normalize.xml">GLSL normalize man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> normalize(
-		vecType<T, P> const & x);
+	template <typename genType>
+	GLM_FUNC_DECL genType normalize(
+		genType const & x);
 
 	/// If dot(Nref, I) < 0.0, return N, otherwise, return -N.
 	///
@@ -104,11 +111,11 @@ namespace glm
 	/// 
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/faceforward.xml">GLSL faceforward man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.5 Geometric Functions</a>
-	template <typename T, precision P, template <typename, precision> class vecType>
-	GLM_FUNC_DECL vecType<T, P> faceforward(
-		vecType<T, P> const & N,
-		vecType<T, P> const & I,
-		vecType<T, P> const & Nref);
+	template <typename genType>
+	GLM_FUNC_DECL genType faceforward(
+		genType const & N,
+		genType const & I,
+		genType const & Nref);
 
 	/// For the incident vector I and surface orientation N, 
 	/// returns the reflection direction : result = I - 2.0 * dot(N, I) * N.
@@ -134,9 +141,11 @@ namespace glm
 	GLM_FUNC_DECL vecType<T, P> refract(
 		vecType<T, P> const & I,
 		vecType<T, P> const & N,
-		T eta);
+		T const & eta);
 
 	/// @}
 }//namespace glm
 
 #include "func_geometric.inl"
+
+#endif//glm_core_func_geometric

@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -11,10 +11,6 @@
 /// 
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
-/// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
 /// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -40,7 +36,8 @@
 /// <glm/gtc/packing.hpp> need to be included to use these features.
 ///////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef GLM_GTC_packing
+#define GLM_GTC_packing
 
 // Dependency:
 #include "type_precision.hpp"
@@ -283,7 +280,7 @@ namespace glm
 	/// @see vec2 unpackSnorm2x16(uint32 p)
 	/// @see <a href="http://www.opengl.org/sdk/docs/manglsl/xhtml/unpackSnorm2x16.xml">GLSL unpackSnorm4x8 man page</a>
 	/// @see <a href="http://www.opengl.org/registry/doc/GLSLangSpec.4.20.8.pdf">GLSL 4.20.8 specification, section 8.4 Floating-Point Pack and Unpack Functions</a>
-	GLM_FUNC_DECL vec4 unpackSnorm4x16(uint64 p);
+	GLM_FUNC_DECL vec4 unpackSnorm4x16(uint64 const & p);
 	
 	/// Returns an unsigned integer obtained by converting the components of a floating-point scalar
 	/// to the 16-bit floating-point representation found in the OpenGL Specification,
@@ -476,3 +473,6 @@ namespace glm
 }// namespace glm
 
 #include "packing.inl"
+
+#endif//GLM_GTC_packing
+

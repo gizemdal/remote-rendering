@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////////////////
 /// OpenGL Mathematics (glm.g-truc.net)
 ///
-/// Copyright (c) 2005 - 2015 G-Truc Creation (www.g-truc.net)
+/// Copyright (c) 2005 - 2014 G-Truc Creation (www.g-truc.net)
 /// Permission is hereby granted, free of charge, to any person obtaining a copy
 /// of this software and associated documentation files (the "Software"), to deal
 /// in the Software without restriction, including without limitation the rights
@@ -12,10 +12,6 @@
 /// The above copyright notice and this permission notice shall be included in
 /// all copies or substantial portions of the Software.
 /// 
-/// Restrictions:
-///		By making use of the Software for military purposes, you choose to make
-///		a Bunny unhappy.
-/// 
 /// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 /// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 /// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,12 +21,13 @@
 /// THE SOFTWARE.
 ///
 /// @ref core
-/// @file glm/detail/_features.hpp
+/// @file glm/core/_features.hpp
 /// @date 2013-02-20 / 2013-02-20
 /// @author Christophe Riccio
 ///////////////////////////////////////////////////////////////////////////////////
 
-#pragma once
+#ifndef glm_core_features
+#define glm_core_features
 
 // #define GLM_CXX98_EXCEPTIONS
 // #define GLM_CXX98_RTTI
@@ -284,7 +281,7 @@
 #		define GLM_CXX11_STATIC_ASSERT
 #	endif
 
-#elif(GLM_COMPILER & (GLM_COMPILER_APPLE_CLANG | GLM_COMPILER_LLVM))
+#elif(GLM_COMPILER & GLM_COMPILER_CLANG)
 #	if(__has_feature(cxx_exceptions))
 #		define GLM_CXX98_EXCEPTIONS
 #	endif
@@ -425,4 +422,6 @@
 #		define GLM_CXX11_VARIADIC_TEMPLATES
 #	endif
 
-#endif//(GLM_COMPILER & (GLM_COMPILER_APPLE_CLANG | GLM_COMPILER_LLVM))
+#endif//(GLM_COMPILER & GLM_COMPILER_CLANG)
+
+#endif//glm_core_features
