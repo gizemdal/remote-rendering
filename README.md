@@ -61,7 +61,7 @@ Area Lights | Point Lights| Spot Lights
 :---: | :---: | :---: 
 <img src="images/area_lights.png" alt="Area Lights" width=300> | <img src="images/point_lights.png" alt="sneak peek" width=300> | <img src="images/spot_lights.png" alt="sneak peek" width=300>
 
-### Scene Files
+## Scene Files
 
 Scene files are passed as command line arguments with the "--scene" flag at front. For example; you can load the scene_example.txt test scene in this repository with the following command line argument: ```--scene ../../../../scene_example.txt```
 
@@ -77,9 +77,10 @@ Every camera add must follow this argument pattern: ```CAMERA (render width) (re
 
 ## OBJ & MTL Parsing
 
-| Obj Loader | Mtl Loader) |
-| :----------------------------------------------------------: | :----------------------------------------------------------: |
-| <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> |
+| Obj Loader | Mtl Loader | Texture Loader| 
+| :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
+| <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> | <img src="images/texture.gif" alt="TXT" width=300> |
+
 
 <a name="streaming"/>
 
@@ -94,6 +95,13 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 | Milestone 1: Server-Client Frame Streaming <br />(Running on same Machine) | Milestone 2: Raytracer to Android Frame streaming<br />(Running on different Machines) | Milestone 3: Desktop Server to Hololens 2                    |
 | :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
 | <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
+
+
+## Camera Synchronization
+
+Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
+
+<img src="images/camera.gif" alt="Camera Sync" width=800>
 
 <a name="resources"/>
 
