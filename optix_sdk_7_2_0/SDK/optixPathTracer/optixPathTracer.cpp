@@ -29,7 +29,7 @@
 #include <glad/glad.h>  // Needs to be included before gl_interop
 
 #include <cuda_gl_interop.h>
-#include <cuda_runtime.h>
+#include "performance_timer.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
@@ -66,7 +66,8 @@
 
 bool resize_dirty = false;
 bool minimized    = false;
-bool saveRequested = false;
+bool saveRequestedFull = false;
+bool saveRequestedQuarter = false;
 bool re_render = true;
 
 // Camera state
@@ -168,6 +169,13 @@ struct PathTracerState
 
     OptixShaderBindingTable        sbt                      = {};
 };
+
+// Timer
+PerformanceTimer& timer()
+{
+    static PerformanceTimer timer;
+    return timer;
+}
 
 
 //------------------------------------------------------------------------------
@@ -356,9 +364,9 @@ static void addSceneGeometry(Geom type,
 {
     // create a transform matrix from the pos, rot and s
     glm::mat4 translate = glm::translate(glm::mat4(), pos);
-    glm::mat4 rotateX = glm::rotate(rot.x * (float)M_PI / 180.f, glm::vec3(1.0, 0.0, 0.0));
-    glm::mat4 rotateY = glm::rotate(rot.y * (float)M_PI / 180.f, glm::vec3(0.0, 1.0, 0.0));
-    glm::mat4 rotateZ = glm::rotate(rot.z * (float)M_PI / 180.f, glm::vec3(0.0, 0.0, 1.0));
+    glm::mat4 rotateX = glm::rotate(rot.x, glm::vec3(1.0, 0.0, 0.0));
+    glm::mat4 rotateY = glm::rotate(rot.y, glm::vec3(0.0, 1.0, 0.0));
+    glm::mat4 rotateZ = glm::rotate(rot.z, glm::vec3(0.0, 0.0, 1.0));
     glm::mat4 scale = glm::scale(s);
     glm::mat4 transform = translate * rotateX * rotateY * rotateZ * scale;
 
@@ -644,8 +652,12 @@ static void keyCallback( GLFWwindow* window, int32_t key, int32_t /*scancode*/, 
     }
     else if( key == GLFW_KEY_S )
     {
-        // Save the image
-        saveRequested = true;
+        // Save the image in full
+        saveRequestedFull = true;
+    }
+    else if (key == GLFW_KEY_D) {
+        // Save the image in quarter
+        saveRequestedQuarter = true;
     }
 }
 
@@ -1493,6 +1505,7 @@ int main( int argc, char* argv[] )
     PathTracerState state;
     sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
     float3 prev_lookat;
+
     //
     // Parse command line options
     //
@@ -1604,14 +1617,40 @@ int main( int argc, char* argv[] )
                         camera_changed = true;
                         prev_lookat = curr_lookat;
                     }
-                    if (saveRequested) {
+                    if (saveRequestedQuarter) { // D key
+                        timer().startCpuTimer();
+                        // Split the output buffer into 4 smaller buffers
+                        // row 1
+                        sutil::ImageBuffer q_buf;
+                        q_buf.data = output_buffer.getHostPointer();
+                        q_buf.width = output_buffer.width();
+                        q_buf.height = output_buffer.height() / 4;
+                        q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        sutil::saveImage("quarter_1.png", q_buf, false);
+                        // row 2
+                        q_buf.data = output_buffer.getHostPointer() + state.params.width * (state.params.height / 4);
+                        sutil::saveImage("quarter_2.png", q_buf, false);
+                        // row 3
+                        q_buf.data = output_buffer.getHostPointer() + 2 * state.params.width * (state.params.height / 4);
+                        sutil::saveImage("quarter_3.png", q_buf, false);
+                        // row 4
+                        q_buf.data = output_buffer.getHostPointer() + 3 * state.params.width * (state.params.height / 4);
+                        sutil::saveImage("quarter_4.png", q_buf, false);
+                        saveRequestedQuarter = false;
+                        timer().endCpuTimer();
+                        std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
+                    }
+                    if (saveRequestedFull) { // S key
+                        timer().startCpuTimer();
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
                         buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
                         sutil::saveImage(outfile.c_str(), buffer, false);
-                        saveRequested = false;
+                        saveRequestedFull = false;
+                        timer().endCpuTimer();
+                        std::cout << "   Regular buffer elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();
