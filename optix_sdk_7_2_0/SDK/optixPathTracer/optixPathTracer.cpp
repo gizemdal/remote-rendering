@@ -1503,7 +1503,7 @@ void cleanupState( PathTracerState& state )
 int main( int argc, char* argv[] )
 {
     PathTracerState state;
-    sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
+    sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
     float3 prev_lookat;
 
     //
