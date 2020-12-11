@@ -76,7 +76,7 @@ struct Params
 {
     unsigned int subframe_index;
     float4*      accum_buffer;
-    uchar4*      frame_buffer;
+    uchar2*      frame_buffer;
     unsigned int width;
     unsigned int height;
     unsigned int samples_per_launch;

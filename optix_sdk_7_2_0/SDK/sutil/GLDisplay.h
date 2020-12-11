@@ -45,7 +45,7 @@ class GLDisplay
 {
 public:
     SUTILAPI GLDisplay(
-        BufferImageFormat format = sutil::BufferImageFormat::UNSIGNED_BYTE4);
+        BufferImageFormat format = sutil::BufferImageFormat::UNSIGNED_BYTE2);
 
     SUTILAPI void display(
             const int32_t  screen_res_x,

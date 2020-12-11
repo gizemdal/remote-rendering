@@ -246,6 +246,12 @@ void GLDisplay::display(
         glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA8,   screen_res_x, screen_res_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr );
         convertToSrgb = false;
     }
+    else if (m_image_format == BufferImageFormat::UNSIGNED_BYTE2)
+    {
+        // input is assumed to be in srgb since it is only 1 byte per channel in size
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, screen_res_x, screen_res_y, 0, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, nullptr);
+        convertToSrgb = false;
+    }
     else if( m_image_format == BufferImageFormat::FLOAT3 )
         glTexImage2D( GL_TEXTURE_2D, 0, GL_RGB32F,  screen_res_x, screen_res_y, 0, GL_RGB,  GL_FLOAT,         nullptr );
 

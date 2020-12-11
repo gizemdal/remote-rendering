@@ -187,6 +187,14 @@ static __forceinline__ __device__ void setPayloadOcclusion( bool occluded )
     optixSetPayload_0( static_cast<unsigned int>( occluded ) );
 }
 
+static __forceinline__ __device__ uchar2 compressColor(float3& color)
+{
+    // get the color-corrected srgb color
+    uchar4 srgb = make_color(color);
+    ushort1 compressed = make_ushort1(((srgb.x & 0xf8) << 8) + ((srgb.y & 0xfc) << 3) + (srgb.z >> 3));
+    return make_uchar2(compressed.x & 0x00FF, (compressed.x >> 8) & 0x00FF);
+}
+
 
 static __forceinline__ __device__ void cosine_sample_hemisphere(const float u1, const float u2, float3& p)
 {
@@ -310,6 +318,8 @@ extern "C" __global__ void __raygen__rg()
 
     float3 result = make_float3( 0.0f );
     int i = params.samples_per_launch;
+    const uint3    launch_index = optixGetLaunchIndex();
+    const unsigned int image_index = launch_index.y * params.width + launch_index.x;
     do
     {
         // The center of each pixel is at fraction (0.5,0.5)
@@ -383,8 +393,6 @@ extern "C" __global__ void __raygen__rg()
     }
     while( --i );
 
-    const uint3    launch_index = optixGetLaunchIndex();
-    const unsigned int image_index  = launch_index.y * params.width + launch_index.x;
     float3         accum_color  = result / static_cast<float>( params.samples_per_launch );
 
     if( subframe_index > 0 )
@@ -394,7 +402,7 @@ extern "C" __global__ void __raygen__rg()
         accum_color = lerp( accum_color_prev, accum_color, a );
     }
     params.accum_buffer[ image_index ] = make_float4( accum_color, 1.0f);
-    params.frame_buffer[ image_index ] = make_color ( accum_color );
+    params.frame_buffer[image_index]   = compressColor(accum_color);//make_color ( accum_color );
 }
 
 

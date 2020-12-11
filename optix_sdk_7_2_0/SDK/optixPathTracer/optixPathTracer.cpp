@@ -81,7 +81,7 @@ int32_t mouse_button = -1;
 // Scene parameters
 
 int32_t samples_per_launch = 4;
-int depth = 6;
+int depth = 3;
 int width = 768;
 int height = 768;
 
@@ -734,7 +734,7 @@ void handleCameraUpdate( Params& params )
 }
 
 
-void handleResize( sutil::CUDAOutputBuffer<uchar4>& output_buffer, Params& params )
+void handleResize( sutil::CUDAOutputBuffer<uchar2>& output_buffer, Params& params )
 {
     if( !resize_dirty )
         return;
@@ -751,7 +751,7 @@ void handleResize( sutil::CUDAOutputBuffer<uchar4>& output_buffer, Params& param
 }
 
 
-void updateState( sutil::CUDAOutputBuffer<uchar4>& output_buffer, Params& params )
+void updateState( sutil::CUDAOutputBuffer<uchar2>& output_buffer, Params& params )
 {
     // Update params on device
     if( camera_changed || resize_dirty )
@@ -762,10 +762,10 @@ void updateState( sutil::CUDAOutputBuffer<uchar4>& output_buffer, Params& params
 }
 
 
-void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerState& state )
+void launchSubframe( sutil::CUDAOutputBuffer<uchar2>& output_buffer, PathTracerState& state )
 {
     // Launch
-    uchar4* result_buffer_data = output_buffer.map();
+    uchar2* result_buffer_data = output_buffer.map();
     state.params.frame_buffer  = result_buffer_data;
     CUDA_CHECK( cudaMemcpyAsync(
                 reinterpret_cast<void*>( state.d_params ),
@@ -788,7 +788,7 @@ void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerS
 }
 
 
-void displaySubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, sutil::GLDisplay& gl_display, GLFWwindow* window )
+void displaySubframe( sutil::CUDAOutputBuffer<uchar2>& output_buffer, sutil::GLDisplay& gl_display, GLFWwindow* window )
 {
     // Display
     int framebuf_res_x = 0;  // The display's resolution (could be HDPI res)
@@ -1587,13 +1587,13 @@ int main( int argc, char* argv[] )
             glfwSetScrollCallback( window, scrollCallback );
             glfwSetWindowUserPointer( window, &state.params );
 
-            outfile = "output.png";
+            outfile = "output.ppm";
 
             //
             // Render loop
             //
             {
-                sutil::CUDAOutputBuffer<uchar4> output_buffer(
+                sutil::CUDAOutputBuffer<uchar2> output_buffer(
                         output_buffer_type,
                         state.params.width,
                         state.params.height
@@ -1625,17 +1625,17 @@ int main( int argc, char* argv[] )
                         q_buf.data = output_buffer.getHostPointer();
                         q_buf.width = output_buffer.width();
                         q_buf.height = output_buffer.height() / 4;
-                        q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-                        sutil::saveImage("quarter_1.png", q_buf, false);
+                        q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE2;
+                        sutil::saveImage("quarter_1.ppm", q_buf, false);
                         // row 2
                         q_buf.data = output_buffer.getHostPointer() + state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_2.png", q_buf, false);
+                        sutil::saveImage("quarter_2.ppm", q_buf, false);
                         // row 3
                         q_buf.data = output_buffer.getHostPointer() + 2 * state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_3.png", q_buf, false);
+                        sutil::saveImage("quarter_3.ppm", q_buf, false);
                         // row 4
                         q_buf.data = output_buffer.getHostPointer() + 3 * state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_4.png", q_buf, false);
+                        sutil::saveImage("quarter_4.ppm", q_buf, false);
                         saveRequestedQuarter = false;
                         timer().endCpuTimer();
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
@@ -1646,7 +1646,7 @@ int main( int argc, char* argv[] )
                         buffer.data = output_buffer.getHostPointer();
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
-                        buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE2;
                         sutil::saveImage(outfile.c_str(), buffer, false);
                         saveRequestedFull = false;
                         timer().endCpuTimer();
@@ -1688,7 +1688,7 @@ int main( int argc, char* argv[] )
                 sutil::initGL();
             }
 
-            sutil::CUDAOutputBuffer<uchar4> output_buffer(
+            sutil::CUDAOutputBuffer<uchar2> output_buffer(
                     output_buffer_type,
                     state.params.width,
                     state.params.height
