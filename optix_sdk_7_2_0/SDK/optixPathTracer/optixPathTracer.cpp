@@ -1617,7 +1617,7 @@ int main( int argc, char* argv[] )
                         camera_changed = true;
                         prev_lookat = curr_lookat;
                     }
-                    if (saveRequestedQuarter) { // D key
+                    if (saveRequestedQuarter || (int)state.params.subframe_index == 100) { // D key
                         timer().startCpuTimer();
                         // Split the output buffer into 4 smaller buffers
                         // row 1
@@ -1640,7 +1640,7 @@ int main( int argc, char* argv[] )
                         timer().endCpuTimer();
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
-                    if (saveRequestedFull || (int) state.params.subframe_index == 100) { // S key
+                    if (saveRequestedFull) { // S key
                         timer().startCpuTimer();
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
