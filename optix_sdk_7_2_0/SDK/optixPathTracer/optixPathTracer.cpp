@@ -1587,7 +1587,7 @@ int main( int argc, char* argv[] )
             glfwSetScrollCallback( window, scrollCallback );
             glfwSetWindowUserPointer( window, &state.params );
 
-            outfile = "output.png";
+            outfile = "output.ppm";
 
             //
             // Render loop
@@ -1626,16 +1626,16 @@ int main( int argc, char* argv[] )
                         q_buf.width = output_buffer.width();
                         q_buf.height = output_buffer.height() / 4;
                         q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-                        sutil::saveImage("quarter_1.png", q_buf, false);
+                        sutil::saveImage("quarter_1.ppm", q_buf, false);
                         // row 2
                         q_buf.data = output_buffer.getHostPointer() + state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_2.png", q_buf, false);
+                        sutil::saveImage("quarter_2.ppm", q_buf, false);
                         // row 3
                         q_buf.data = output_buffer.getHostPointer() + 2 * state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_3.png", q_buf, false);
+                        sutil::saveImage("quarter_3.ppm", q_buf, false);
                         // row 4
                         q_buf.data = output_buffer.getHostPointer() + 3 * state.params.width * (state.params.height / 4);
-                        sutil::saveImage("quarter_4.png", q_buf, false);
+                        sutil::saveImage("quarter_4.ppm", q_buf, false);
                         saveRequestedQuarter = false;
                         timer().endCpuTimer();
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
