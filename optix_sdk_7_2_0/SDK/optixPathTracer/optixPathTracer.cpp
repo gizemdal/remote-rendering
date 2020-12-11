@@ -81,7 +81,7 @@ int32_t mouse_button = -1;
 // Scene parameters
 
 int32_t samples_per_launch = 4;
-int depth = 6;
+int depth = 3;
 int width = 768;
 int height = 768;
 
@@ -1669,7 +1669,7 @@ int main( int argc, char* argv[] )
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 
-                    //sutil::displayStats( state_update_time, render_time, display_time );
+                    sutil::displayStats( state_update_time, render_time, display_time );
 
                     glfwSwapBuffers( window );
 
