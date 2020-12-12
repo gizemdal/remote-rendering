@@ -1503,7 +1503,7 @@ void cleanupState( PathTracerState& state )
 int main( int argc, char* argv[] )
 {
     PathTracerState state;
-    sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::GL_INTEROP;
+    sutil::CUDAOutputBufferType output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
     float3 prev_lookat;
 
     //
@@ -1605,6 +1605,7 @@ int main( int argc, char* argv[] )
                 std::chrono::duration<double> state_update_time( 0.0 );
                 std::chrono::duration<double> render_time( 0.0 );
                 std::chrono::duration<double> display_time( 0.0 );
+                std::chrono::duration<double> save_time(0.0);
                 do
                 {
                     float3 curr_lookat = readCameraFile(scene_file);
@@ -1641,16 +1642,22 @@ int main( int argc, char* argv[] )
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     if (saveRequestedFull) { // S key
-                        timer().startCpuTimer();
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
                         buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-                        sutil::saveImage(outfile.c_str(), buffer, false);
                         saveRequestedFull = false;
+                        timer().startCpuTimer();
+                        sutil::saveImage(outfile.c_str(), buffer, false);
                         timer().endCpuTimer();
-                        std::cout << "   Regular buffer elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
+                        saveRequestedFull = false;
+                        std::cout << "   SaveImage as png elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
+                        outfile = "output.ppm";
+                        timer().startCpuTimer();
+                        sutil::saveImage(outfile.c_str(), buffer, false);
+                        timer().endCpuTimer();
+                        std::cout << "   SaveImage as ppm elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();
