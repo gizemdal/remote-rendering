@@ -1,7 +1,6 @@
 # Remote Rendering for XR
 
 ![Sneak peek](images/readme_main_labeled.png)
-
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
 ![Developer](https://img.shields.io/badge/Developer-Gizem%20Dal-green.svg) ![Developer](https://img.shields.io/badge/Developer-Dayu%20Li-green.svg) ![Developer](https://img.shields.io/badge/Developer-Tushar%20Purang-green.svg)
@@ -77,10 +76,17 @@ Every camera add must follow this argument pattern: ```CAMERA (render width) (re
 
 ## OBJ & MTL Parsing
 
+<img src="images/shield.gif" alt="sheild" width=800>
+
+To achieve our goal of rendering assets and objects remotely, the ray tracer should have the ability to render arbitrary meshes and import external mesh files. We used a 3rd party tool called [tiny_obj loader](https://github.com/tinyobjloader/tinyobjloader) to achieve the import of external .obj files as multiple triangles. The imported mesh can be set as any material types saved in the pathtracer. Furthermore, we would like to let the Hololens users see not only meshes in simple materials but also objects that looks real. Thus we added the features of texture mapping. The mtl loader takes the .mtl files that are usually provided along with the .obj files, it reads the pieces with same material types and let the path tracer render them as independent pieces. Then the texture loader will load the texture images and transfer them into texture objects in Optix.
+
+The following images shows how the imported obj mesh looks like with only obj, obj and mtl, and obj,mtl,textures.
+
 | Obj Loader | Mtl Loader | Texture Loader| 
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> | <img src="images/texture.gif" alt="TXT" width=300> |
 
+*The sponza mesh and textures are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/), shield mesh and textures are downloaded from [Turbo Squid](https://www.turbosquid.com/Search/3D-Models/free/textured)*
 
 <a name="streaming"/>
 
