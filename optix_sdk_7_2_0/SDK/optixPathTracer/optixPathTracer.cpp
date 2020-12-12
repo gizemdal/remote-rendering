@@ -1642,16 +1642,16 @@ int main( int argc, char* argv[] )
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     if (saveRequestedFull) { // S key
-                        timer().startCpuTimer();
+                        //timer().startCpuTimer();
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
                         buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE2;
                         sutil::saveImage(outfile.c_str(), buffer, false);
-                        timer().endCpuTimer();
+                        //timer().endCpuTimer();
                         saveRequestedFull = false;
-                        std::cout << "   Regular buffer elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
+                        //std::cout << "   Regular buffer elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();
