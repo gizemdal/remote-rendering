@@ -80,7 +80,7 @@ int32_t mouse_button = -1;
 
 // Scene parameters
 
-int32_t samples_per_launch = 4;
+int32_t samples_per_launch = 2;
 int depth = 3;
 int width = 768;
 int height = 768;
@@ -772,7 +772,7 @@ void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerS
                 &state.params, sizeof( Params ),
                 cudaMemcpyHostToDevice, state.stream
                 ) );
-
+    timer().startGpuTimer();
     OPTIX_CHECK( optixLaunch(
                 state.pipeline,
                 state.stream,
@@ -783,6 +783,7 @@ void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerS
                 state.params.height,  // launch height
                 1                     // launch depth
                 ) );
+    timer().endGpuTimer();
     output_buffer.unmap();
     CUDA_SYNC_CHECK();
 }
@@ -1640,13 +1641,13 @@ int main( int argc, char* argv[] )
                         timer().endCpuTimer();
                         std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
-                    if (saveRequestedFull || (int)state.params.subframe_index == 100) { // S key
-                        timer().startCpuTimer();
+                    if (saveRequestedFull) { // S key
                         sutil::ImageBuffer buffer;
                         buffer.data = output_buffer.getHostPointer();
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
                         buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        timer().startCpuTimer();
                         sutil::saveImage(outfile.c_str(), buffer, false);
                         saveRequestedFull = false;
                         timer().endCpuTimer();
@@ -1664,6 +1665,8 @@ int main( int argc, char* argv[] )
                     t1 = std::chrono::steady_clock::now();
                     render_time += t1 - t0;
                     t0 = t1;
+                    if (state.params.subframe_index == 100)
+                        std::cout << "Render time: " << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
 
                     displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
