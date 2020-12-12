@@ -74,7 +74,7 @@ Every camera add must follow this argument pattern: ```CAMERA (render width) (re
 
 <a name="obj-mtl-parsing"/>
 
-## OBJ & MTL Parsing
+## Import Meshes & Texture Mapping
 
 <img src="images/shield.gif" alt="sheild" width=800>
 
