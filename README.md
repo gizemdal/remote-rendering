@@ -1,8 +1,11 @@
 # Remote Rendering for XR
 
-![Sneak peek](images/readme_main_labeled.png)
+![Render](images/shield.gif)
 
+![Sneak peek](images/readme_main_labeled.png)
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
+
+
 
 ![Developer](https://img.shields.io/badge/Developer-Gizem%20Dal-green.svg) ![Developer](https://img.shields.io/badge/Developer-Dayu%20Li-green.svg) ![Developer](https://img.shields.io/badge/Developer-Tushar%20Purang-green.svg)
 
