@@ -1648,11 +1648,8 @@ int main( int argc, char* argv[] )
                         buffer.width = output_buffer.width();
                         buffer.height = output_buffer.height();
                         buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
-                        timer().startCpuTimer();
                         sutil::saveImage(outfile.c_str(), buffer, false);
-                        timer().endCpuTimer();
                         saveRequestedFull = false;
-                        std::cout << "   SaveImage as ppm elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
                     }
                     auto t0 = std::chrono::steady_clock::now();
                     glfwPollEvents();

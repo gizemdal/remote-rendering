@@ -53,6 +53,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
+#include <ctime> 
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -531,11 +532,12 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
         const int32_t width  = image.width;
         const int32_t height = image.height;
         std::vector<unsigned char> pix( width*height*3 );
-
+        std::chrono::time_point<std::chrono::system_clock> start, end;
         switch( image.pixel_format )
         {
             case BufferImageFormat::UNSIGNED_BYTE4:
             {
+                start = std::chrono::system_clock::now();
                 for( int j = height - 1; j >= 0; --j )
                 {
                     for( int i = 0; i < width; ++i )
@@ -547,6 +549,7 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                         pix[ dst_idx+2] = reinterpret_cast<uint8_t*>( image.data )[ src_idx+2 ];
                     }
                 }
+                end = std::chrono::system_clock::now();
             } break;
 
             case BufferImageFormat::FLOAT3:
@@ -592,7 +595,10 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                 throw Exception( "sutil::saveImage(): Unrecognized image buffer pixel format.\n" );
             }
         }
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        std::time_t end_time = std::chrono::system_clock::to_time_t(end);
 
+        std::cout << "elapsed time: " << elapsed_seconds.count() * 1000 << "ms\n";
         savePPM( pix.data(), filename.c_str(), width, height, 3 );
     }
 
