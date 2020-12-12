@@ -86,7 +86,7 @@ The following images shows how the imported obj mesh looks like with only obj, o
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> | <img src="images/texture.gif" alt="TXT" width=300> |
 
-*The sponza mesh and textures are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/), shield mesh and textures are downloaded from [Turbo Squid]*(https://www.turbosquid.com/Search/3D-Models/free/textured)
+*The sponza mesh and textures are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/), shield mesh and textures are downloaded from [Turbo Squid](https://www.turbosquid.com/Search/3D-Models/free/textured)*
 
 <a name="streaming"/>
 
