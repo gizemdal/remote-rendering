@@ -115,7 +115,11 @@ Based on the file I/O system, the raytracer can read data from external files, t
 <a name="performance"/>
 
 ## Performance Analysis
+### Latency Analysis
 
+<img src="images/latency.jpeg" alt="Latency" width=800>
+
+The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, then the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
 #### Color Compression
 
 Our goal of reducing latency is related to the rate at which we're exporting each subframe as a PPM image for Unity Desktop server application to read and send to the client. In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
