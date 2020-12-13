@@ -171,7 +171,7 @@ Although compressed frames have more uniform frame rates, we can observe more co
 
 <a name="resources"/>
 
-### Export Image as .ppm format
+#### Transmit Image as .ppm Format
 
 Another major latency is the export of image. Previously, in each frame, a png image file will be generated, the png file is created by the saveImage() function in optix's sutil library. However, the raw frame is saved as a byte array in host memory. We looked into the saveImage function, it turned out generate a png file with raw byte arrays will take a great amount of time. Thus we attempted to find another solution that can export the frame as a format which is recognizable by Unity with idealy O(n). 
 
