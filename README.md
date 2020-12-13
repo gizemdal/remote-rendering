@@ -61,7 +61,7 @@ Area Lights | Point Lights| Spot Lights
 :---: | :---: | :---: 
 <img src="images/area_lights.png" alt="Area Lights" width=300> | <img src="images/point_lights.png" alt="sneak peek" width=300> | <img src="images/spot_lights.png" alt="sneak peek" width=300>
 
-## Scene Files
+#### Scene Files
 
 Scene files are passed as command line arguments with the "--scene" flag at front. For example; you can load the scene_example.txt test scene in this repository with the following command line argument: ```--scene ../../../../scene_example.txt```
 
