@@ -1520,7 +1520,7 @@ int main( int argc, char* argv[] )
         }
         else if( arg == "--no-gl-interop" )
         {
-            output_buffer_type = sutil::CUDAOutputBufferType::CUDA_DEVICE;
+            output_buffer_type = sutil::CUDAOutputBufferType::ZERO_COPY;
         }
         else if( arg == "--file" || arg == "-f" )
         {
@@ -1664,19 +1664,18 @@ int main( int argc, char* argv[] )
                     t1 = std::chrono::steady_clock::now();
                     save_time += t1 - t0;
                     t0 = t1;
-                    
                     launchSubframe(output_buffer, state);
                     t1 = std::chrono::steady_clock::now();
                     render_time += t1 - t0;
                     t0 = t1;
 
-                    //displaySubframe(output_buffer, gl_display, window);
+                    displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 
                     sutil::displayStats( state_update_time, render_time, display_time, save_time );
 
-                    //glfwSwapBuffers( window );
+                    glfwSwapBuffers( window );
 
                     ++state.params.subframe_index;
                 } while( !glfwWindowShouldClose( window ));
