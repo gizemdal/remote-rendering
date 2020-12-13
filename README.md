@@ -39,7 +39,8 @@ These instructions should help you with running the OptiX Path Tracer sample on 
 - Step 1: Download the NVIDIA OptiX 7.2.0 SDK. This will also require a NVIDIA Driver of version 456.71 or newer.
 - Step 2: Once you download the OptiX SDK, clone our project and cd to the optix_sdk_7_2_0/SDK folder.
 - Step 3: Create a new folder named 'data' and create a subfolder named 'Sponza' inside. Download the [Crytek Sponza](https://casual-effects.com/data/) mesh and put all the files inside the new Sponza folder.
-- Step 4: Go back to the SDK parent folder. Create a build directory and cd into it. Run cmake to configure and generate the VS solution.   
+- Step 4: Go back to the SDK parent folder. Create a build directory and cd into it. Run cmake to configure and generate the VS solution.
+	- You may have to set the GLM directory manually while configuring the project. GLM headers are included in ```optix_sdk_7_2_0/SDK/support/glm```.
 - Step 5: Once you have the VS solution ready, open it and set optixPathTracer as the start up project.
 - Step 6: Set build mode to Release and open Properties->Debugging. Set ```--scene ../../../../scenes/scene_example.txt``` as the command line argument. We use the --scene flag to let the program know that we're passing a scene file path.
 	- You may also test the simple Cornell Box scene at ```../../../../scenes/basic_cornell.txt```
