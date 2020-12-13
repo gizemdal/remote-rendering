@@ -175,7 +175,7 @@ Although compressed frames have more uniform frame rates, we can observe more co
 
 Another major latency is the export of image. Previously, in each frame, a png image file will be generated, the png file is created by the saveImage() function in optix's sutil library. However, the raw frame is saved as a byte array in host memory. We looked into the saveImage function, it turned out generate a png file with raw byte arrays will take a great amount of time. Thus we attempted to find another solution that can export the frame as a format which is recognizable by Unity with idealy O(n). 
 
-PPM refers to portable [pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format.
+PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format.
 
 | FPS | Save Image Time | Load Image Time
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------:
@@ -195,3 +195,6 @@ These resources helped us brainstorm ideas and implement our project. We also in
 - [About Azure Remote Rendering](https://docs.microsoft.com/en-us/azure/remote-rendering/overview/about)
 - [High-Quality Real-Time Global Illumination in Augmented Reality](https://www.ims.tuwien.ac.at/projects/rayengine)
 - [A Streaming-Based Solution for Remote Visualization of 3D Graphics on Mobile Devices](https://www.researchgate.net/publication/3411346_A_Streaming-Based_Solution_for_Remote_Visualization_of_3D_Graphics_on_Mobile_Devices)
+- [Parsing a ppm format](http://josiahmanson.com/prose/optimize_ppm/)
+- [Advanced Topics in CUDA](https://onedrive.live.com/view.aspx?resid=A6B78147D66DD722!95165&ithint=file%2cpptx&authkey=!AIL2Ogq2WoUa3O8)
+- [RGB 565 Compressed Color](http://www.barth-dev.de/online/rgb565-color-picker/#:~:text=RGB565%20requires%20only%2016%20(5,in%20bytes%20would%20be%20complicated)
