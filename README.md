@@ -126,7 +126,7 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 | Generate Subframe | 7.28 ms|
 | Save Image | 4.2 ms|
 | Load Image in Server | ? ms|
-| Wifi Trasmission | ? ms|
+| Wifi Transmission | ? ms|
 
 *Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*
 
