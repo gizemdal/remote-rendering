@@ -124,9 +124,13 @@ We originally had the output/frame buffer support accumulated color data of RGBA
 
 We tested the results of color compression with our basic Cornell box scene file and recorded the time it takes saveImage() to perform at each subframe in the render loop. We compared these results to the time data we collected from uncompressed subframes and put both results together in a chart to analyze. We measured the times in milliseconds for the 20 first subframes.
 
-<img src="images/color_compression.png" alt="PPM Export Chart" width=1000>
+![Export Chart](images/color_compression.png)
 
 As seen in the chart above, saving uncompressed image data results in a lot of fluctuation while compressed image data maintains a steadier runtime. We also measured the render and display times at each 20 subframe. Render time corresponds to how long it takes to trace all ray paths with the given number of samples per subframe and depth. Display time corresponds to how long it takes to create a GL 2D texture from the frame buffer and update the display on the screen.
+
+<img src="images/render_time.png" alt="Render Time Chart" width=450> <img src="images/display_time.png" alt="Display Time Chart" width=450>
+
+Using compressed vs uncompressed colors do not have a significant impact on the time it takes for all ray paths to be traced with the given parameters. The display update with uncompressed colors is slightly faster compared to using compressed colors, however this would no longer have an impact if we reserve showing each frame to the Hololens rather than show them simultaneously on the desktop.
 
 <a name="resources"/>
 
