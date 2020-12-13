@@ -114,9 +114,7 @@ Based on the file I/O system, the raytracer can read data from external files, t
 ## Performance Analysis
 
 For our performance optimization analysis, we used these machines with the following specs:
-- 4-Way Image Split : Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
-- Zero Copy:
-- Color Compression: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
+- Machine 1: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
 
 Our analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.
 
@@ -144,7 +142,7 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 
 As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
 
-Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
+Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with **Machine 1** with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
 
 | FPS | Save Image Time
 | :----------------------------------------------------------: | :----------------------------------------------------------:
@@ -166,7 +164,7 @@ In order to save the resulting output buffer at each subframe we call the saveIm
 
 We originally had the output/frame buffer support accumulated color data of RGBA8 (32 bits total) per ray path and ignore the alpha component when it comes to writing the image data into pixels. In the hopes of reducing the time it takes to export a single frame, we searched ways of reducing the memory needed to store color information. We updated our output buffer to store color data in [RGB565 compressed format](http://www.barth-dev.de/online/rgb565-color-picker/), which would use 16 bits total per ray path, and then decompress the RGB565 color data into RGB8 while writing the image data into pixels since the PPM image writer by ostream expects 8 bits per channel. We also updated the sutil imageSave() function to support image data of UNSIGNED_BYTE2.
 
-We tested the results of color compression with our basic Cornell box scene file and recorded the time it takes saveImage() to perform at each subframe in the render loop. We compared these results to the time data we collected from uncompressed subframes and put both results together in a chart to analyze. We measured the times in milliseconds for the 20 first subframes.
+We tested the results of color compression with **Machine 1** with our basic Cornell box scene file and recorded the time it takes saveImage() to perform at each subframe in the render loop. We compared these results to the time data we collected from uncompressed subframes and put both results together in a chart to analyze. We measured the times in milliseconds for the 20 first subframes.
 
 ![Export Chart](images/color_compression.png)
 
