@@ -80,7 +80,7 @@ int32_t mouse_button = -1;
 
 // Scene parameters
 
-int32_t samples_per_launch = 2;
+int32_t samples_per_launch = 4;
 int depth = 3;
 int width = 768;
 int height = 768;
@@ -772,7 +772,6 @@ void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerS
                 &state.params, sizeof( Params ),
                 cudaMemcpyHostToDevice, state.stream
                 ) );
-    timer().startGpuTimer();
     OPTIX_CHECK( optixLaunch(
                 state.pipeline,
                 state.stream,
@@ -783,7 +782,6 @@ void launchSubframe( sutil::CUDAOutputBuffer<uchar4>& output_buffer, PathTracerS
                 state.params.height,  // launch height
                 1                     // launch depth
                 ) );
-    timer().endGpuTimer();
     output_buffer.unmap();
     CUDA_SYNC_CHECK();
 }
@@ -1601,8 +1599,23 @@ int main( int argc, char* argv[] )
                         );
 
                 output_buffer.setStream( state.stream );
+
+                // Full image buffer
+                sutil::ImageBuffer buffer;
+                buffer.data = output_buffer.getHostPointer();
+                buffer.width = output_buffer.width();
+                buffer.height = output_buffer.height();
+                buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
                 sutil::GLDisplay gl_display;
 
+                // 4-way split buffer
+                sutil::ImageBuffer q_buf;
+                q_buf.data = output_buffer.getHostPointer();
+                q_buf.width = output_buffer.width();
+                q_buf.height = output_buffer.height() / 4;
+                q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+
+                // Timer variables
                 std::chrono::duration<double> state_update_time( 0.0 );
                 std::chrono::duration<double> render_time( 0.0 );
                 std::chrono::duration<double> display_time( 0.0 );
@@ -1619,15 +1632,18 @@ int main( int argc, char* argv[] )
                         camera_changed = true;
                         prev_lookat = curr_lookat;
                     }
+
+                    auto t0 = std::chrono::steady_clock::now();
+                    glfwPollEvents();
+
+                    updateState( output_buffer, state.params );
+                    auto t1 = std::chrono::steady_clock::now();
+                    state_update_time += t1 - t0;
+                    t0 = t1;
+
                     if (saveRequestedQuarter) { // D key
-                        timer().startCpuTimer();
-                        // Split the output buffer into 4 smaller buffers
                         // row 1
-                        sutil::ImageBuffer q_buf;
-                        q_buf.data = output_buffer.getHostPointer();
-                        q_buf.width = output_buffer.width();
-                        q_buf.height = output_buffer.height() / 4;
-                        q_buf.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                        timer().startCpuTimer();
                         sutil::saveImage("quarter_1.ppm", q_buf, false);
                         // row 2
                         q_buf.data = output_buffer.getHostPointer() + state.params.width * (state.params.height / 4);
@@ -1638,39 +1654,27 @@ int main( int argc, char* argv[] )
                         // row 4
                         q_buf.data = output_buffer.getHostPointer() + 3 * state.params.width * (state.params.height / 4);
                         sutil::saveImage("quarter_4.ppm", q_buf, false);
-                        saveRequestedQuarter = false;
                         timer().endCpuTimer();
-                        std::cout << "   4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << "ms    " << std::endl;
+                        saveRequestedQuarter = false;
+                        std::cout << "4-way split elapsed time: " << timer().getCpuElapsedTimeForPreviousOperation() << " ms" << std::endl;
                     }
-                    if (saveRequestedFull) { // S key
-                        sutil::ImageBuffer buffer;
-                        buffer.data = output_buffer.getHostPointer();
-                        buffer.width = output_buffer.width();
-                        buffer.height = output_buffer.height();
-                        buffer.pixel_format = sutil::BufferImageFormat::UNSIGNED_BYTE4;
+                    else {
                         sutil::saveImage(outfile.c_str(), buffer, false);
-                        saveRequestedFull = false;
                     }
-                    auto t0 = std::chrono::steady_clock::now();
-                    glfwPollEvents();
-
-                    updateState( output_buffer, state.params );
-                    auto t1 = std::chrono::steady_clock::now();
-                    state_update_time += t1 - t0;
+                    t1 = std::chrono::steady_clock::now();
+                    save_time += t1 - t0;
                     t0 = t1;
                     
                     launchSubframe(output_buffer, state);
                     t1 = std::chrono::steady_clock::now();
                     render_time += t1 - t0;
                     t0 = t1;
-                    if (state.params.subframe_index == 100)
-                        std::cout << "Render time: " << timer().getGpuElapsedTimeForPreviousOperation() << std::endl;
 
                     displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 
-                    sutil::displayStats( state_update_time, render_time, display_time );
+                    sutil::displayStats( state_update_time, render_time, display_time, save_time );
 
                     glfwSwapBuffers( window );
 
