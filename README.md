@@ -18,7 +18,7 @@
 [Setup Overview](#overview)  
 [OptiX Ray Tracer](#ray-tracer)   
 [OBJ & MTL Parsing](#obj-mtl-parsing)   
-[Streaming & Network](#streaming)
+[Streaming & Network](#streaming)   
 [Performance Analysis](#performance)  
 [Resources](#resources)  
 
