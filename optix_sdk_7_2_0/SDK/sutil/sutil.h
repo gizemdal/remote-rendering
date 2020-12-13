@@ -111,9 +111,10 @@ SUTILAPI void        endFrameImGui();
 // is managed by the caller.
 SUTILAPI void displayFPS( unsigned total_frame_count );
 
-SUTILAPI void displayStats( std::chrono::duration<double>& state_update_time,
-                            std::chrono::duration<double>& render_time,
-                            std::chrono::duration<double>& display_time );
+SUTILAPI void displayStats(std::chrono::duration<double>& state_update_time,
+                           std::chrono::duration<double>& render_time,
+                           std::chrono::duration<double>& display_time,
+                           std::chrono::duration<double>& save_time);
 
 // Display a short string starting at x,y.
 SUTILAPI void displayText( const char* text, float x, float y );

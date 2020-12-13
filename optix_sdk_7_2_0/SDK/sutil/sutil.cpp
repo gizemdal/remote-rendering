@@ -534,7 +534,6 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
         const int32_t width  = image.width;
         const int32_t height = image.height;
         std::vector<unsigned char> pix( width*height*3 );
-        std::chrono::time_point<std::chrono::system_clock> start, end;
         switch( image.pixel_format )
         {
             case BufferImageFormat::UNSIGNED_BYTE4:
@@ -554,7 +553,6 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
 
             case BufferImageFormat::UNSIGNED_BYTE2:
             {
-                start = std::chrono::system_clock::now();
                 for (int j = height - 1; j >= 0; --j)
                 {
                     for (int i = 0; i < width; ++i)
@@ -572,7 +570,6 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                         pix[dst_idx + 2] = (blue5 << 3) | (blue5 >> 2);
                     }
                 }
-                end = std::chrono::system_clock::now();
             } break;
 
             case BufferImageFormat::FLOAT3:
@@ -618,10 +615,6 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                 throw Exception( "sutil::saveImage(): Unrecognized image buffer pixel format.\n" );
             }
         }
-        std::chrono::duration<double> elapsed_seconds = end - start;
-        std::time_t end_time = std::chrono::system_clock::to_time_t(end);
-
-        std::cout << "elapsed time: " << elapsed_seconds.count() * 1000 << "ms\n";
         savePPM( pix.data(), filename.c_str(), width, height, 3 );
     }
 
@@ -757,14 +750,15 @@ void displayFPS( unsigned int frame_count )
 }
 
 
-void displayStats( std::chrono::duration<double>& state_update_time,
-                          std::chrono::duration<double>& render_time,
-                          std::chrono::duration<double>& display_time )
+void displayStats(std::chrono::duration<double>& state_update_time,
+    std::chrono::duration<double>& render_time,
+    std::chrono::duration<double>& display_time,
+    std::chrono::duration<double>& save_time)
 {
-    constexpr std::chrono::duration<double> display_update_min_interval_time( 0.5 );
+    constexpr std::chrono::duration<double> display_update_min_interval_time(0.5);
     static int32_t                          total_subframe_count = 0;
-    static int32_t                          last_update_frames   = 0;
-    static auto                             last_update_time     = std::chrono::steady_clock::now();
+    static int32_t                          last_update_frames = 0;
+    static auto                             last_update_time = std::chrono::steady_clock::now();
     static char                             display_text[128];
 
     const auto cur_time = std::chrono::steady_clock::now();
@@ -774,23 +768,25 @@ void displayStats( std::chrono::duration<double>& state_update_time,
 
     typedef std::chrono::duration<double, std::milli> durationMs;
 
-    if( cur_time - last_update_time > display_update_min_interval_time || total_subframe_count == 0 )
+    if (cur_time - last_update_time > display_update_min_interval_time || total_subframe_count == 0)
     {
-        sprintf( display_text,
-                 "%5.1f fps\n\n"
-                 "state update: %8.1f ms\n"
-                 "render      : %8.1f ms\n"
-                 "display     : %8.1f ms\n",
-                 last_update_frames / std::chrono::duration<double>( cur_time - last_update_time ).count(),
-                 ( durationMs( state_update_time ) / last_update_frames ).count(),
-                 ( durationMs( render_time ) / last_update_frames ).count(),
-                 ( durationMs( display_time ) / last_update_frames ).count() );
+        sprintf(display_text,
+            "%5.1f fps\n\n"
+            "state update: %8.1f ms\n"
+            "save image  : %8.1f ms\n"
+            "render      : %8.1f ms\n"
+            "display     : %8.1f ms\n",
+            last_update_frames / std::chrono::duration<double>(cur_time - last_update_time).count(),
+            (durationMs(state_update_time) / last_update_frames).count(),
+            (durationMs(save_time) / last_update_frames).count(),
+            (durationMs(render_time) / last_update_frames).count(),
+            (durationMs(display_time) / last_update_frames).count());
 
-        last_update_time   = cur_time;
+        last_update_time = cur_time;
         last_update_frames = 0;
-        state_update_time = render_time = display_time = std::chrono::duration<double>::zero();
+        state_update_time = save_time = render_time = display_time = std::chrono::duration<double>::zero();
     }
-    displayText( display_text, 10.0f, 10.0f );
+    displayText(display_text, 10.0f, 10.0f);
     endFrameImGui();
 
     ++total_subframe_count;
