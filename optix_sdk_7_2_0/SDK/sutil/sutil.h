@@ -54,7 +54,8 @@ enum BufferImageFormat
 {
     UNSIGNED_BYTE4,
     FLOAT4,
-    FLOAT3
+    FLOAT3,
+    UNSIGNED_BYTE2,
 };
 
 struct ImageBuffer

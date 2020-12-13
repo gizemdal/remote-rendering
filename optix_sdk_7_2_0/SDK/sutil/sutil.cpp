@@ -53,7 +53,7 @@
 #include <cmath>
 #include <cstdint>
 #include <cstring>
-#include <ctime> 
+#include <ctime>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -217,6 +217,8 @@ size_t pixelFormatSize( BufferImageFormat format )
     {
         case BufferImageFormat::UNSIGNED_BYTE4:
             return sizeof( char ) * 4;
+        case BufferImageFormat::UNSIGNED_BYTE2:
+            return sizeof( char ) * 2;
         case BufferImageFormat::FLOAT3:
             return sizeof( float ) * 3;
         case BufferImageFormat::FLOAT4:
@@ -549,6 +551,27 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                 }
             } break;
 
+            case BufferImageFormat::UNSIGNED_BYTE2:
+            {
+                for (int j = height - 1; j >= 0; --j)
+                {
+                    for (int i = 0; i < width; ++i)
+                    {
+                        const int32_t dst_idx = 3 * width * (height - j - 1) + 3 * i;
+                        const int32_t src_idx = 2 * width * j + 2 * i;
+                        // Decompress RGB
+                        // put the uchar2 into uint16_t
+                        uint16_t rgb565 = (uint16_t)(reinterpret_cast<uint8_t*>(image.data)[src_idx + 0]) + ((uint16_t)reinterpret_cast<uint8_t*>(image.data)[src_idx + 1] << 8);
+                        uint8_t red5     = (rgb565 & 0xF800) >> 11; // red
+                        pix[dst_idx + 0] = (red5 << 3) | (red5 >> 2); 
+                        uint8_t green5   = (rgb565 & 0x07E0) >> 5; // green
+                        pix[dst_idx + 1] = (green5 << 2) | (green5 >> 4); 
+                        uint8_t blue5    = (rgb565 & 0x001F); // blue
+                        pix[dst_idx + 2] = (blue5 << 3) | (blue5 >> 2);
+                    }
+                }
+            } break;
+
             case BufferImageFormat::FLOAT3:
             {
                 for( int j = height - 1; j >= 0; --j )
@@ -613,6 +636,20 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
                     throw Exception( "sutil::saveImage(): stbi_write_png failed" );
             } break;
 
+            case BufferImageFormat::UNSIGNED_BYTE2:
+            {
+                stbi_flip_vertically_on_write(true);
+                if (!stbi_write_png(
+                    filename.c_str(),
+                    image.width,
+                    image.height,
+                    2, // components,
+                    image.data,
+                    image.width * sizeof(uchar2) //stride_in_bytes
+                ))
+                    throw Exception("sutil::saveImage(): stbi_write_png failed");
+            } break;
+
             case BufferImageFormat::FLOAT3:
             {
                 throw Exception( "sutil::saveImage(): saving of float3 images to PNG not implemented yet" );
@@ -637,6 +674,11 @@ void saveImage( const char* fname, const ImageBuffer& image, bool disable_srgb_c
             case BufferImageFormat::UNSIGNED_BYTE4:
             {
                 throw Exception( "sutil::saveImage(): saving of uchar4 images to EXR not implemented yet" );
+            }
+
+            case BufferImageFormat::UNSIGNED_BYTE2:
+            {
+                throw Exception("sutil::saveImage(): saving of uchar2 images to EXR not implemented yet");
             }
 
             case BufferImageFormat::FLOAT3:
@@ -708,15 +750,15 @@ void displayFPS( unsigned int frame_count )
 }
 
 
-void displayStats( std::chrono::duration<double>& state_update_time,
-                          std::chrono::duration<double>& render_time,
-                          std::chrono::duration<double>& display_time,
-                          std::chrono::duration<double>& save_time)
+void displayStats(std::chrono::duration<double>& state_update_time,
+    std::chrono::duration<double>& render_time,
+    std::chrono::duration<double>& display_time,
+    std::chrono::duration<double>& save_time)
 {
-    constexpr std::chrono::duration<double> display_update_min_interval_time( 0.5 );
+    constexpr std::chrono::duration<double> display_update_min_interval_time(0.5);
     static int32_t                          total_subframe_count = 0;
-    static int32_t                          last_update_frames   = 0;
-    static auto                             last_update_time     = std::chrono::steady_clock::now();
+    static int32_t                          last_update_frames = 0;
+    static auto                             last_update_time = std::chrono::steady_clock::now();
     static char                             display_text[128];
 
     const auto cur_time = std::chrono::steady_clock::now();
@@ -726,25 +768,28 @@ void displayStats( std::chrono::duration<double>& state_update_time,
 
     typedef std::chrono::duration<double, std::milli> durationMs;
 
-    if( cur_time - last_update_time > display_update_min_interval_time || total_subframe_count == 0 )
+    if (cur_time - last_update_time > display_update_min_interval_time || total_subframe_count == 0)
     {
-        sprintf( display_text,
-                 "%5.1f fps\n\n"
-                 "state update: %8.1f ms\n"
-                 "save image  : %8.1f ms\n"
-                 "render      : %8.1f ms\n"
-                 "display     : %8.1f ms\n",
-                 last_update_frames / std::chrono::duration<double>( cur_time - last_update_time ).count(),
-                 ( durationMs( state_update_time ) / last_update_frames ).count(),
-                 ( durationMs( save_time ) / last_update_frames ).count(),
-                 ( durationMs( render_time ) / last_update_frames ).count(),
-                 ( durationMs( display_time ) / last_update_frames ).count() );
+        sprintf(display_text,
+            "%5.1f fps\n\n"
+            "state update: %8.1f ms\n"
+            "save image  : %8.1f ms\n"
+            "render      : %8.1f ms\n"
+            "display     : %8.1f ms\n",
+            last_update_frames / std::chrono::duration<double>(cur_time - last_update_time).count(),
+            (durationMs(state_update_time) / last_update_frames).count(),
+            (durationMs(save_time) / last_update_frames).count(),
+            (durationMs(render_time) / last_update_frames).count(),
+            (durationMs(display_time) / last_update_frames).count());
 
-        last_update_time   = cur_time;
+        last_update_time = cur_time;
         last_update_frames = 0;
         state_update_time = save_time = render_time = display_time = std::chrono::duration<double>::zero();
+        /*if (total_subframe_count < 105) {
+            std::cout << display_text << std::endl;
+        }*/
     }
-    displayText( display_text, 10.0f, 10.0f );
+    displayText(display_text, 10.0f, 10.0f);
     endFrameImGui();
 
     ++total_subframe_count;
