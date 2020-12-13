@@ -113,6 +113,13 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 ## Performance Analysis
 
+For our performance optimization analysis, we used these machines with the following specs:
+- 4-Way Image Split : Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
+- Zero Copy:
+- Color Compression: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
+
+Our analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.
+
 ### Latency Analysis
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
@@ -135,13 +142,13 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 
 #### 4-Way Image Split
 
-**Important: The performance analysis of this section is ran on a Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card. This analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.**
-
 As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
 
 Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
 
-<img src="images/split_graph.png" alt="4-way vs full save chart" width=650> <img src="images/split_fps.png" alt="4-way vs full fps chart" width=650>
+| FPS | Save Image Time
+| :----------------------------------------------------------: | :----------------------------------------------------------:
+<img src="images/split_fps.png" alt="4-way vs full fps chart" width=650> | <img src="images/split_graph.png" alt="4-way vs full save chart" width=650>
 
 #### Zero Copy
 
@@ -154,8 +161,6 @@ In the step of launch the subframe in host and export it as a image file, we wil
 As shown in the charts, with the same paramters and the same scene, the fps improved from 76 to 117 and the time cost in saving the frame as ppm format dropped from 128.9ms to 4.2ms, which is a apparent improvment in reducing the latency and display performance.
 
 #### Color Compression
-
-**Important: The performance analysis of this section is ran on a Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card. This analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.**
 
 In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
 
