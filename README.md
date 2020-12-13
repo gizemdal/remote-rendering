@@ -44,7 +44,7 @@ These instructions should help you with running the OptiX Path Tracer sample on 
 - Step 5: Once you have the VS solution ready, open it and set optixPathTracer as the start up project.
 - Step 6: Set build mode to Release and open Properties->Debugging. Set ```--scene ../../../../scenes/scene_example.txt``` as the command line argument. We use the --scene flag to let the program know that we're passing a scene file path.
 	- You may also test the simple Cornell Box scene at ```../../../../scenes/basic_cornell.txt```
-- Step 7: Build the project in Release mode and hit 'Ctrl + F5' to run. You should see an interactive popup window with Sponza rendered with different colors per material.
+- Step 7: Build the project in Release mode and hit 'Ctrl + F5' to run. If you have loaded scene_example.txt, you should see an interactive popup window with Sponza rendered with different colors per material.
 	- Use the left mouse button to change camera orientation, middle mouse button to zoom in/out and right mouse button to pan the camera.
 	- Press 'S' on the keyboard to save the current render frame. The render frame will be saved as 'output.png' under SDK/build/optixPathTracer. This file will be overwritten by the next saved frame unless you change its name!
 
