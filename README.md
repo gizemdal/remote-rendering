@@ -115,7 +115,7 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 For our performance optimization analysis, we used these machines with the following specs:
 - Machine 1: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
-
+- Machine 2: Windows 10, i7-10700K @ 3.80GHz 16GB, GTX 2070 8150MB (Personal laptop)
 ### Latency Analysis
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
@@ -130,7 +130,7 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 | Wifi Transmission and Display | ? ms|
 
 *Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*  
-*Tested with Dayu's machine*  
+*Tested with **Machine 2***  
 
 <img src="images/dragon.png" alt="dragon scene" width=400>
 
@@ -148,7 +148,7 @@ Saving a PPM image 4 times instead of 1 results in slower save image times on th
 
 #### Zero Copy
 
-In the step of launch the subframe in host and export it as a image file, we will have to do the data transmission from device to host. In our previous code we used the classical way of using cudaMemcopy, device -> host, to fetch the sub frame. We learnt that this way is very time consuming and it turned out to be the main source of our previous ~1500 ms latency. Thus we decided to use the zero copy method to map the host memory with device. The Optix Engine provides us the sutil libary with CudaOutputBuffer of zero copy. We used this buffer to setstream with the ray tracer state and use mapped host pointer to read the frame in host. By doing this we got a huge improvement in fps and latency. The charts below shows the difference in fps and save image time with/without the zero_copy method is applied. 
+In the step of launch the subframe in host and export it as a image file, we will have to do the data transmission from device to host. In our previous code we used the classical way of using cudaMemcopy, device -> host, to fetch the sub frame. We learnt that this way is very time consuming and it turned out to be the main source of our previous ~1500 ms latency. Thus we decided to use the zero copy method to map the host memory with device. The Optix Engine provides us the sutil libary with CudaOutputBuffer of zero copy. We used this buffer to setstream with the ray tracer state and use mapped host pointer to read the frame in host. By doing this we got a huge improvement in fps and latency. The charts below shows the difference in fps and save image time with/without the zero_copy method is applied. The results below are recorded with **Machine 2**
 
 | FPS | Save Image Time
 | :----------------------------------------------------------: | :----------------------------------------------------------:
@@ -188,7 +188,7 @@ Although compressed frames have more uniform frame rates, we can observe slight 
 
 Another major latency is the export of image. Previously, in each frame, a png image file will be generated, the png file is created by the saveImage() function in optix's sutil library. However, the raw frame is saved as a byte array in host memory. We looked into the saveImage function, it turned out generate a png file with raw byte arrays will take a great amount of time. Thus we attempted to find another solution that can export the frame as a format which is recognizable by Unity with idealy O(n). 
 
-PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format.
+PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format. The results below are recorded with **Machine 2**
 
 | FPS | Save Image Time | Load Image Time
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------:
@@ -211,3 +211,5 @@ These resources, including third-party libraries, helped us brainstorm ideas and
 - [High-Quality Real-Time Global Illumination in Augmented Reality](https://www.ims.tuwien.ac.at/projects/rayengine)
 - [A Streaming-Based Solution for Remote Visualization of 3D Graphics on Mobile Devices](https://www.researchgate.net/publication/3411346_A_Streaming-Based_Solution_for_Remote_Visualization_of_3D_Graphics_on_Mobile_Devices)
 - [RGB565 Color Picker - Barth Development](http://www.barth-dev.de/online/rgb565-color-picker/)
+- [Parsing a ppm format](http://josiahmanson.com/prose/optimize_ppm/)
+- [Advanced Topics in CUDA](https://onedrive.live.com/view.aspx?resid=A6B78147D66DD722!95165&ithint=file%2cpptx&authkey=!AIL2Ogq2WoUa3O8)
