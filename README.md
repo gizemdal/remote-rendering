@@ -130,7 +130,17 @@ As seen in the chart above, saving uncompressed image data results in a lot of f
 
 <img src="images/render_time.png" alt="Render Time Chart" width=650> <img src="images/display_time.png" alt="Display Time Chart" width=650>
 
-Using compressed vs uncompressed colors do not have a significant impact on the time it takes for all ray paths to be traced with the given parameters. The display update with uncompressed colors is slightly faster compared to using compressed colors, however this would no longer have an impact if we reserve showing each frame to the Hololens rather than show them simultaneously on the desktop.
+Using compressed vs uncompressed colors do not have a significant impact on the time it takes for all ray paths to be traced with the given parameters. The display update with uncompressed colors is slightly faster compared to using compressed colors, however this would no longer have an impact if we reserve showing each frame to the Hololens rather than show them simultaneously on the desktop. The graph below shows the recorded FPS for uncompressed frames without display and compressed frames with and without display.
+
+<img src="images/fps_graph.png" alt="FPS Chart" width=650>
+
+We see a slight increase in FPS for compressed frames when the display is disabled. The FPS rates for compressed images overall are more uniform compared to those of uncompressed frames due to more stable frame image save times.
+
+Although compressed frames have more uniform frame rates, we can observe more color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
+
+| Uncompressed | Compressed
+| :----------------------------------------------------------: | :----------------------------------------------------------:
+<img src="images/ucomp.png" alt="Uncompressed" width=450> | <img src="images/comp.png" alt="Compressed" width=450>
 
 <a name="resources"/>
 
