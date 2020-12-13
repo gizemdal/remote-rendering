@@ -107,6 +107,8 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 
 Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
 
+<img src="images/camera.gif" alt="Camera Sync" width=800>
+
 <a name="performance"/>
 
 ## Performance Analysis
@@ -156,7 +158,7 @@ As shown in the charts, with the same paramters and the same scene, the fps impr
 
 #### Color Compression
 
-In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
+In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images (check Transmit Image as .ppm Format optimization section for more detail).
 
 We originally had the output/frame buffer support accumulated color data of RGBA8 (32 bits total) per ray path and ignore the alpha component when it comes to writing the image data into pixels. In the hopes of reducing the time it takes to export a single frame, we searched ways of reducing the memory needed to store color information. We updated our output buffer to store color data in [RGB565 compressed format](http://www.barth-dev.de/online/rgb565-color-picker/), which would use 16 bits total per ray path, and then decompress the RGB565 color data into RGB8 while writing the image data into pixels since the PPM image writer by ostream expects 8 bits per channel. We also updated the sutil imageSave() function to support image data of UNSIGNED_BYTE2.
 
