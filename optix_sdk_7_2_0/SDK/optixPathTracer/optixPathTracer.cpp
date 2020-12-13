@@ -1670,13 +1670,13 @@ int main( int argc, char* argv[] )
                     render_time += t1 - t0;
                     t0 = t1;
 
-                    displaySubframe(output_buffer, gl_display, window);
+                    //displaySubframe(output_buffer, gl_display, window);
                     t1 = std::chrono::steady_clock::now();
                     display_time += t1 - t0;
 
                     sutil::displayStats( state_update_time, render_time, display_time, save_time );
 
-                    glfwSwapBuffers( window );
+                    //glfwSwapBuffers( window );
 
                     ++state.params.subframe_index;
                 } while( !glfwWindowShouldClose( window ));
