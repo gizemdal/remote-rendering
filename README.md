@@ -118,10 +118,6 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 #### Color Compression
 
-| Uncompressed | Compressed
-| :----------------------------------------------------------: | :----------------------------------------------------------:
-| <img src="images/uncompressed.gif" alt="Uncompressed" width=500> | <img src="images/compressed.gif" alt="Compressed" width=500> 
-
 <a name="resources"/>
 
 ## Resources
