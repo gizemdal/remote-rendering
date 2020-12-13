@@ -103,7 +103,7 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 | :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
 | <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
 
-## Camera Synchronization
+#### Camera Synchronization
 
 Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
 
