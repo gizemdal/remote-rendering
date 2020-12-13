@@ -197,4 +197,4 @@ These resources helped us brainstorm ideas and implement our project. We also in
 - [A Streaming-Based Solution for Remote Visualization of 3D Graphics on Mobile Devices](https://www.researchgate.net/publication/3411346_A_Streaming-Based_Solution_for_Remote_Visualization_of_3D_Graphics_on_Mobile_Devices)
 - [Parsing a ppm format](http://josiahmanson.com/prose/optimize_ppm/)
 - [Advanced Topics in CUDA](https://onedrive.live.com/view.aspx?resid=A6B78147D66DD722!95165&ithint=file%2cpptx&authkey=!AIL2Ogq2WoUa3O8)
-- [RGB 565 Compressed Color](http://www.barth-dev.de/online/rgb565-color-picker/#:~:text=RGB565%20requires%20only%2016%20(5,in%20bytes%20would%20be%20complicated)
+- [RGB 565 Compressed Color](http://www.barth-dev.de/online/rgb565-color-picker/)
