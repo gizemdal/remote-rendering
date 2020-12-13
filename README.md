@@ -118,6 +118,8 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 #### Color Compression
 
+<img src="images/color_compression.png" alt="PPM Export Chart" width=800>
+
 <a name="resources"/>
 
 ## Resources
