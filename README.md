@@ -119,36 +119,33 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
 
-The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, then the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
+The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, in the real usage of our remote rendering project, we turned off the display of subframes sothat the result of ray tracing won't be shown in the desktop. By doing this we can discard the time used in displaying the subframe by ~2.8ms. Instead, the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
 
 | Step | Time |
 |---|---|
-| Generate Subframe | 7.28 ms|
+| Generate Subframe | 2.6 ms|
 | Save Image | 4.2 ms|
-| Load Image in Server | ? ms|
-| Wifi Transmission | ? ms|
+| Load Image in Server | 0.8 ms|
+| Wifi Transmission and Display | ? ms|
 
-*Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*
+*Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*  
+*Tested with Dayu's machine*  
 
 <img src="images/dragon.png" alt="dragon scene" width=400>
 
 ### Optimization Attempts
+#### Zero Copy
 
-#### 4-Way Image Split
+In the step of launch the subframe in host and export it as a image file, we will have to do the data transmission from device to host. In our previous code we used the classical way of using cudaMemcopy, device -> host, to fetch the sub frame. We learnt that this way is very time consuming and it turned out to be the main source of our previous ~1500 ms latency. Thus we decided to use the zero copy method to map the host memory with device. The Optix Engine provides us the sutil libary with CudaOutputBuffer of zero copy. We used this buffer to setstream with the ray tracer state and use mapped host pointer to read the frame in host. By doing this we got a huge improvement in fps and latency. The charts below shows the difference in fps and save image time with/without the zero_copy method is applied. 
 
-**Important: The performance analysis of this section is ran on a Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card. This analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.**
+| FPS | Save Image Time
+| :----------------------------------------------------------: | :----------------------------------------------------------:
+<img src="images/FPS_ZC.png" alt="dragon scene" width=400> | <img src="images/saveimage_ZC.png" alt="dragon scene" width=400>
 
-As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
-
-Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side. The results below are recorded with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
-
-<img src="images/split_graph.png" alt="4-way vs full chart" width=650>
-
+As shown in the charts, with the same paramters and the same scene, the fps improved from 76 to 117 and the time cost in saving the frame as ppm format dropped from 128.9ms to 4.2ms, which is a apparent improvment in reducing the latency and display performance.
 #### Color Compression
 
-**Important: The performance analysis of this section is ran on a Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card. This analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.**
-
-In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
+Our goal of reducing latency is related to the rate at which we're exporting each subframe as a PPM image for Unity Desktop server application to read and send to the client. In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
 
 We originally had the output/frame buffer support accumulated color data of RGBA8 (32 bits total) per ray path and ignore the alpha component when it comes to writing the image data into pixels. In the hopes of reducing the time it takes to export a single frame, we searched ways of reducing the memory needed to store color information. We updated our output buffer to store color data in [RGB565 compressed format](http://www.barth-dev.de/online/rgb565-color-picker/), which would use 16 bits total per ray path, and then decompress the RGB565 color data into RGB8 while writing the image data into pixels since the PPM image writer by ostream expects 8 bits per channel. We also updated the sutil imageSave() function to support image data of UNSIGNED_BYTE2.
 
@@ -166,7 +163,7 @@ Using compressed vs uncompressed colors do not have a significant impact on the 
 
 We see a slight increase in FPS for compressed frames when the display is disabled. The FPS rates for compressed images overall are more uniform compared to those of uncompressed frames due to more stable frame image save times.
 
-Although compressed frames have more uniform frame rates, we can observe slight color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
+Although compressed frames have more uniform frame rates, we can observe more color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
 
 | Uncompressed | Compressed
 | :----------------------------------------------------------: | :----------------------------------------------------------:
