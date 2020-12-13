@@ -99,11 +99,14 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 
 <img src="images/diagramNetworking.png" alt="Area Lights" width=500>
 
+
+
 | Milestone 1: Server-Client Frame Streaming <br />(Running on same Machine) | Milestone 2: Raytracer to Android Frame streaming<br />(Running on different Machines) | Milestone 3: Desktop Server to Hololens 2                    |
 | :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
 | <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
 
-#### Camera Synchronization
+
+## Camera Synchronization
 
 Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
 
@@ -112,17 +115,11 @@ Based on the file I/O system, the raytracer can read data from external files, t
 <a name="performance"/>
 
 ## Performance Analysis
-
-For our performance optimization analysis, we used these machines with the following specs:
-- Machine 1: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
-
-Our analysis should serve as a comparison between different parameters rather than a performance benchmark, since runtimes will depend on the machine.
-
 ### Latency Analysis
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
 
-The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, in the real usage of our remote rendering project, we turned off the display of subframes sothat the result of ray tracing won't be shown in the desktop. By doing this we can discard the time used in displaying the subframe by ~2.8ms. Instead, the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency, we made several attempts to optimize our pipeline. Here are the current latencies:
+The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, in the real usage of our remote rendering project, we turned off the display of subframes sothat the result of ray tracing won't be shown in the desktop. By doing this we can discard the time used in displaying the subframe by ~2.8ms. Instead, the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
 
 | Step | Time |
 |---|---|
@@ -137,17 +134,6 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 <img src="images/dragon.png" alt="dragon scene" width=400>
 
 ### Optimization Attempts
-
-#### 4-Way Image Split
-
-As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
-
-Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with **Machine 1** with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
-
-| FPS | Save Image Time
-| :----------------------------------------------------------: | :----------------------------------------------------------:
-<img src="images/split_fps.png" alt="4-way vs full fps chart" width=650> | <img src="images/split_graph.png" alt="4-way vs full save chart" width=650>
-
 #### Zero Copy
 
 In the step of launch the subframe in host and export it as a image file, we will have to do the data transmission from device to host. In our previous code we used the classical way of using cudaMemcopy, device -> host, to fetch the sub frame. We learnt that this way is very time consuming and it turned out to be the main source of our previous ~1500 ms latency. Thus we decided to use the zero copy method to map the host memory with device. The Optix Engine provides us the sutil libary with CudaOutputBuffer of zero copy. We used this buffer to setstream with the ray tracer state and use mapped host pointer to read the frame in host. By doing this we got a huge improvement in fps and latency. The charts below shows the difference in fps and save image time with/without the zero_copy method is applied. 
@@ -157,22 +143,19 @@ In the step of launch the subframe in host and export it as a image file, we wil
 <img src="images/FPS_ZC.png" alt="dragon scene" width=400> | <img src="images/saveimage_ZC.png" alt="dragon scene" width=400>
 
 As shown in the charts, with the same paramters and the same scene, the fps improved from 76 to 117 and the time cost in saving the frame as ppm format dropped from 128.9ms to 4.2ms, which is a apparent improvment in reducing the latency and display performance.
-
 #### Color Compression
 
-In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
+Our goal of reducing latency is related to the rate at which we're exporting each subframe as a PPM image for Unity Desktop server application to read and send to the client. In order to save the resulting output buffer at each subframe we call the saveImage() function provided by the OptiX sutil library which supports exporting images in both PNG and PPM format. We're currently exporting PPM images rather than PNG due to significanly reduced file sizes.
 
 We originally had the output/frame buffer support accumulated color data of RGBA8 (32 bits total) per ray path and ignore the alpha component when it comes to writing the image data into pixels. In the hopes of reducing the time it takes to export a single frame, we searched ways of reducing the memory needed to store color information. We updated our output buffer to store color data in [RGB565 compressed format](http://www.barth-dev.de/online/rgb565-color-picker/), which would use 16 bits total per ray path, and then decompress the RGB565 color data into RGB8 while writing the image data into pixels since the PPM image writer by ostream expects 8 bits per channel. We also updated the sutil imageSave() function to support image data of UNSIGNED_BYTE2.
 
-We tested the results of color compression with **Machine 1** with our basic Cornell box scene file and recorded the time it takes saveImage() to perform at each subframe in the render loop. We compared these results to the time data we collected from uncompressed subframes and put both results together in a chart to analyze. We measured the times in milliseconds for the 20 first subframes.
+We tested the results of color compression with our basic Cornell box scene file and recorded the time it takes saveImage() to perform at each subframe in the render loop. We compared these results to the time data we collected from uncompressed subframes and put both results together in a chart to analyze. We measured the times in milliseconds for the 20 first subframes.
 
 ![Export Chart](images/color_compression.png)
 
 As seen in the chart above, saving uncompressed image data results in a lot of fluctuation while compressed image data maintains a steadier runtime. We also measured the render and display times at each 20 subframe. Render time corresponds to how long it takes to trace all ray paths with the given number of samples per subframe and depth. Display time corresponds to how long it takes to create a GL 2D texture from the frame buffer and update the display on the screen.
 
-| Render Time | Display Time
-| :----------------------------------------------------------: | :----------------------------------------------------------:
-<img src="images/render_time.png" alt="Render Time Chart" width=650>  | <img src="images/display_time.png" alt="Display Time Chart" width=650>
+<img src="images/render_time.png" alt="Render Time Chart" width=650> <img src="images/display_time.png" alt="Display Time Chart" width=650>
 
 Using compressed vs uncompressed colors do not have a significant impact on the time it takes for all ray paths to be traced with the given parameters. The display update with uncompressed colors is slightly faster compared to using compressed colors, however this would no longer have an impact if we reserve showing each frame to the Hololens rather than show them simultaneously on the desktop. The graph below shows the recorded FPS for uncompressed frames without display and compressed frames with and without display.
 
@@ -180,7 +163,7 @@ Using compressed vs uncompressed colors do not have a significant impact on the 
 
 We see a slight increase in FPS for compressed frames when the display is disabled. The FPS rates for compressed images overall are more uniform compared to those of uncompressed frames due to more stable frame image save times.
 
-Although compressed frames have more uniform frame rates, we can observe slight color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
+Although compressed frames have more uniform frame rates, we can observe more color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
 
 | Uncompressed | Compressed
 | :----------------------------------------------------------: | :----------------------------------------------------------:
@@ -188,9 +171,21 @@ Although compressed frames have more uniform frame rates, we can observe slight 
 
 <a name="resources"/>
 
+### Export Image as .ppm format
+
+Another major latency is the export of image. Previously, in each frame, a png image file will be generated, the png file is created by the saveImage() function in optix's sutil library. However, the raw frame is saved as a byte array in host memory. We looked into the saveImage function, it turned out generate a png file with raw byte arrays will take a great amount of time. Thus we attempted to find another solution that can export the frame as a format which is recognizable by Unity with idealy O(n). 
+
+PPM refers to portable [pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format.
+
+| FPS | Save Image Time | Load Image Time
+| :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------:
+<img src="images/fps_ppm.png" alt="dragon scene" width=400> | <img src="images/saveimage_ppm.png" alt="dragon scene" width=400> | <img src="images/loadimage_ppm.png" alt="dragon scene" width=400>
+
+As shown, both of the loading costs in Unity are tiny, but there is a apparent drop in the save time for ~60ms, thus the fps was improved by ~100. Thus, using ppm format as the image import/export method is considered a strong optimization.
+
 ## Resources
 
-These resources, including third-party libraries, helped us brainstorm ideas and implement features and optimizations. We would also like to thank Shehzan Mohammed and Gary Li for their feedback and suggestions.
+These resources helped us brainstorm ideas and implement our project. We also included third party libraries that we used for this project.
 
 - [NVIDIA OptiX 7.2.0 SDK & Samples](https://developer.nvidia.com/optix)
 - [NVIDIA OptiX 7 SIGGRAPH Course Samples by Ingo Wald](https://gitlab.com/ingowald/optix7course)
@@ -200,4 +195,3 @@ These resources, including third-party libraries, helped us brainstorm ideas and
 - [About Azure Remote Rendering](https://docs.microsoft.com/en-us/azure/remote-rendering/overview/about)
 - [High-Quality Real-Time Global Illumination in Augmented Reality](https://www.ims.tuwien.ac.at/projects/rayengine)
 - [A Streaming-Based Solution for Remote Visualization of 3D Graphics on Mobile Devices](https://www.researchgate.net/publication/3411346_A_Streaming-Based_Solution_for_Remote_Visualization_of_3D_Graphics_on_Mobile_Devices)
-- [RGB565 Color Picker - Barth Development](http://www.barth-dev.de/online/rgb565-color-picker/)
