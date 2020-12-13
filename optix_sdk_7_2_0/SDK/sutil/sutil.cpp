@@ -785,6 +785,9 @@ void displayStats(std::chrono::duration<double>& state_update_time,
         last_update_time = cur_time;
         last_update_frames = 0;
         state_update_time = save_time = render_time = display_time = std::chrono::duration<double>::zero();
+        /*if (total_subframe_count < 105) {
+            std::cout << display_text << std::endl;
+        }*/
     }
     displayText(display_text, 10.0f, 10.0f);
     endFrameImGui();
