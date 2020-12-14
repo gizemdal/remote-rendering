@@ -4,7 +4,7 @@
 
 ![Sneak peek](images/readme_main_labeled.png)
 
-<img src="images/remote_rendering_demo.gif" alt="Diagram" width=1000>
+<img src="images/remote_rendering_demo.gif" alt="demo" width=500>
 
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
@@ -111,11 +111,11 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 | :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
 | <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
 
-<img src="images/final_demo_1.gif" alt="demo_1" width=500>
-
-<img src="images/final_demo_2.gif" alt="demo_2" width=500>
 
 
+|                                                            |                                                            |
+| ---------------------------------------------------------- | ---------------------------------------------------------- |
+| <img src="images/final_demo_2.gif" alt="demo_2" width=500> | <img src="images/final_demo_1.gif" alt="demo_1" width=500> |
 
 <a name="performance"/>
 
