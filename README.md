@@ -140,6 +140,7 @@ For our performance optimization analysis, we used these machines with the follo
 - Machine 1: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
 - Machine 2: Windows 10, i7-10700K @ 3.80GHz 16GB, GTX 2070 8150MB (Personal laptop)
 - Machine 3: Windows 10, i7-7700HQ CPU @ 2.80Ghz 2.81 GHz with NVIDIA GeForce GTX 1060Ti graphics card
+- Client Device: [MicroSoft Hololens 2](https://www.microsoft.com/en-us/hololens)
 ### Latency Analysis
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
