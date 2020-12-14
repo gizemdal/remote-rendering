@@ -4,7 +4,7 @@
 
 ![Sneak peek](images/readme_main_labeled.png)
 
-<img src="images/remote_rendering_demo.gif">
+<img src="images/demo.gif">
 
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
