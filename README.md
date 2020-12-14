@@ -130,9 +130,9 @@ Based on the file I/O system, the raytracer can read data from external files, t
 
 Hololens has strong ability in scanning and rendering the environment around the user and generate a mesh. In our project we were able to fetch the Hololens spatial mapping into our raytracer to gnereate a mesh of real-world. This provide us more potentials of XR interactions in our project. The user can scan the environment around and send the exported mesh to the server and see the raytracing result.
 
-|                                                            |                                                            
-| ---------------------------------------------------------- | ---------------------------------------------------------- 
-| <img src="images/spatialmapping.gif" alt="Spatial Mapping" width=500> | <img src="images/spatialmapping2.gif" alt="Spatial Mapping" width=500> 
+|   Ray Tracing with Spatial Mapping        |  Details
+| :----------------------------------------------------------: | :----------------------------------------------------------:
+ <img src="images/spatialmapping.gif" alt="Spatial Mapping" width=500> | <img src="images/spatialmapping2.gif" alt="Spatial Mapping" width=500> 
 
 ## Performance Analysis
 
