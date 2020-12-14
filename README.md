@@ -1,11 +1,17 @@
 # Remote Rendering for XR
 
+
+
 ![Sneak peek](images/readme_main_labeled.png)
+
+<img src="images/remote_rendering_demo.gif" alt="Diagram" width=1000>
+
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
 ![Developer](https://img.shields.io/badge/Developer-Gizem%20Dal-green.svg) ![Developer](https://img.shields.io/badge/Developer-Dayu%20Li-green.svg) ![Developer](https://img.shields.io/badge/Developer-Tushar%20Purang-green.svg)
 
 **Team members:**
+
 - Gizem Dal
   - [Portfolio](https://www.gizemdal.com/), [Linkedin](https://www.linkedin.com/in/gizemdal/)
 - Dayu Li
@@ -30,7 +36,7 @@ The goal of our project is to use the power of GPU rendering to get real-time pa
 
 In order to achieve real-time path tracing on the GPU, we're using the [NVIDIA OptiX Ray Tracing Engine (Version 7.2.0)](https://developer.nvidia.com/optix) which is designed to accelerate ray tracing applications on NVIDIA GPUs and allow users to program intersection, ray generation and shading components.
 
-<img src="images/diagram.jpg" alt="Diagram" width=800>
+<img src="images/diagram.png" alt="Diagram" width=800>
 
 <a name="overview"/>
 
@@ -85,15 +91,17 @@ To achieve our goal of rendering assets and objects remotely, the ray tracer sho
 
 The following images shows how the imported obj mesh looks like with only obj, obj and mtl, and obj,mtl,textures.
 
-| Obj Loader | Mtl Loader | Texture Loader| 
+| Obj Loader | Mtl Loader | Texture Loader|
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
 | <img src="images/sponza.gif" alt="OBJ" width=300> | <img src="images/sponza with mtl.gif" alt="MTL" width=300> | <img src="images/texture.gif" alt="TXT" width=300> |
 
 *The sponza mesh and textures are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/), shield mesh and textures are downloaded from [Turbo Squid](https://www.turbosquid.com/Search/3D-Models/free/textured)*
 
+
+
 <a name="streaming"/>
 
-## Streaming & Network
+## Streaming Frames
 
 For each frame cycle, the frame buffer is dumped into an image file on device memory. This frame is read by the desktop server application and sent to the HoloLens 2 application. Networking is done using Unity's UNet. 
 
@@ -103,11 +111,11 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 | :----------------------------------------------------------: | :----------------------------------------------------------: | ------------------------------------------------------------ |
 | <img src="images/streaming.gif" alt="Area Lights" width=300> | <img src="images/streaming2.gif" alt="Area Lights" width=300> | <img src="images/streaming3.gif" alt="Area Lights" width=300> |
 
-#### Camera Synchronization
+<img src="images/final_demo_1.gif" alt="demo_1" width=500>
 
-Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
+<img src="images/final_demo_2.gif" alt="demo_2" width=500>
 
-<img src="images/camera.gif" alt="Camera Sync" width=800>
+
 
 <a name="performance"/>
 
@@ -116,6 +124,7 @@ Based on the file I/O system, the raytracer can read data from external files, t
 For our performance optimization analysis, we used these machines with the following specs:
 - Machine 1: Intel(R) Core(TM) i7-7700HQ CPU @ 2.80 GHz 2.81 GHz with NVIDIA GeForce GTX 1060 graphics card
 - Machine 2: Windows 10, i7-10700K @ 3.80GHz 16GB, GTX 2070 8150MB (Personal laptop)
+- Machine 3: Windows 10, i7-7700HQ CPU @ 2.80Ghz 2.81 GHz with NVIDIA GeForce GTX 1060Ti graphics card
 ### Latency Analysis
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
@@ -127,7 +136,7 @@ The dataflow diagram above shows the sources of the latency. In each interation,
 | Generate Subframe | 2.6 ms|
 | Save Image | 4.2 ms|
 | Load Image in Server | 0.8 ms|
-| Wifi Transmission and Display | ? ms|
+| Wifi Transmission and Display | 1.2s |
 
 *Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*  
 *Tested with **Machine 2***  
@@ -180,6 +189,8 @@ We see a slight increase in FPS for compressed frames when the display is disabl
 
 Although compressed frames have more uniform frame rates, we can observe slight color artifacts because we're storing less precise color information. This is more noticeable with renders without any camera movement, thus the frame undergoes more samples and becomes more converged. However, since our aim is using these render frames for platforms with frequent camera movement such as Hololens, we believe that the slight loss of image quality is a reasonable tradeoff.
 
+
+
 | Uncompressed | Compressed
 | :----------------------------------------------------------: | :----------------------------------------------------------:
 <img src="images/ucomp.png" alt="Uncompressed" width=450> | <img src="images/comp.png" alt="Compressed" width=450>
@@ -188,13 +199,31 @@ Although compressed frames have more uniform frame rates, we can observe slight 
 
 Another major latency is the export of image. Previously, in each frame, a png image file will be generated, the png file is created by the saveImage() function in optix's sutil library. However, the raw frame is saved as a byte array in host memory. We looked into the saveImage function, it turned out generate a png file with raw byte arrays will take a great amount of time. Thus we attempted to find another solution that can export the frame as a format which is recognizable by Unity with idealy O(n). 
 
-PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the imporvement in FPS and frame import/export time with png and ppm format. The results below are recorded with **Machine 2**
+PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/courses/cse576/10sp/software/ppmman.html), which a lowest common denominator color image file. By using the ppm format, we can export the image file with only 1 iteration loop through the byte array of the frame. This will reduce the time cost of exporting frame by a lot. Further, the import of ppm format is also handy with 1 iteration loop through the file. The optix sutil library has the API of saving the raw image as ppm format. We implemented the ppm decoder in the Unity server app. The charts below shows the improvement in FPS and frame import/export time with png and ppm format. The results below are recorded with **Machine 2**
 
 | FPS | Save Image Time | Load Image Time
 | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------:
 <img src="images/fps_ppm.png" alt="dragon scene" width=400> | <img src="images/saveimage_ppm.png" alt="dragon scene" width=400> | <img src="images/loadimage_ppm.png" alt="dragon scene" width=400>
 
 As shown, both of the loading costs in Unity are tiny, but there is a apparent drop in the save time for ~60ms, thus the fps was improved by ~100. Thus, using ppm format as the image import/export method is considered a strong optimization.
+
+**Transmission of Frames**
+
+Frames are transmitted from the desktop server application to the AR application running on HoloLens 2. Before transmission, frames are broken into packets of 1024Kb. Since the size of frames is 1.2MB, a lot of bandwidth is wasted in this process. To conserve bandwidth and the processing power required in breaking up frames into data packets, ray tracer splits the frames into 4 parts, which are then transmitted as a complete packet. The packet size is also reduced from 1024 to 512 Kb. 
+
+<img src="images/packet_vs_fps.png" alt="dragon scene" width=600>
+
+The above chart shows the affect of splitting images and varying transmission packet size on the frames rendered per second inside HoloLens. The results are recorded with **Machine 3**.
+
+
+
+<a name="resources"/>
+
+## Future Improvements
+
+- Instead of running Server-client application on CPU, network abstractions for GPUs can be implemented to make the GPU communicate directly with Hololens.
+- Frames can be encoded using ffmpeg before transmission and rendered as a video stream in HoloLens.
+- Late-stage Reprojection can be implemented using hardware acceleration in HoloLens. 
 
 <a name="resources"/>
 
