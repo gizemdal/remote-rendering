@@ -145,16 +145,6 @@ The dataflow diagram above shows the sources of the latency. In each iteration, 
 
 ### Optimization Attempts
 
-#### 4-Way Image Split
-
-As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
-
-Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with **Machine 1** with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
-
-| FPS | Save Image Time
-| :----------------------------------------------------------: | :----------------------------------------------------------:
-<img src="images/split_fps.png" alt="4-way vs full fps chart" width=650> | <img src="images/split_graph.png" alt="4-way vs full save chart" width=650>
-
 #### Zero Copy
 
 In the step of launch the subframe in host and export it as a image file, we will have to do the data transmission from device to host. In our previous code we used the classical way of using cudaMemcopy, device -> host, to fetch the sub frame. We learnt that this way is very time consuming and it turned out to be the main source of our previous ~1500 ms latency. Thus we decided to use the zero copy method to map the host memory with device. The Optix Engine provides us the sutil libary with CudaOutputBuffer of zero copy. We used this buffer to setstream with the ray tracer state and use mapped host pointer to read the frame in host. By doing this we got a huge improvement in fps and latency. The charts below shows the difference in fps and save image time with/without the zero_copy method is applied. The results below are recorded with **Machine 2**
@@ -207,6 +197,16 @@ PPM refers to [portable pixmap file format](https://courses.cs.washington.edu/co
 
 As shown, both of the loading costs in Unity are tiny, but there is a apparent drop in the save time for ~60ms, thus the fps was improved by ~100. Thus, using ppm format as the image import/export method is considered a strong optimization.
 
+#### 4-Way Image Split
+
+As an attempt to reduce image loading times in the server, we tested splitting the output/frame buffer into 4 smaller buffers and export the frame PPM image in 4 smaller parts. When we say that we split the buffer into 4 smaller buffers, this does not mean that we're creating 4 buffers that is quarter the size of our original buffer and copying original buffer memory into each of them. We are achieving our buffer split by creating another single buffer that is quarter the size of our original buffer and moving its data pointer to point at the corresponding original buffer memory by getting the host pointer of the original buffer at each quarter image save. Since we're optimizing our code with ZERO_COPY (check Zero Copy optimization section for more detail), getting the host pointer of the original buffer does not result in a device to host memcpy operation.
+
+Saving a PPM image 4 times instead of 1 results in slower save image times on the path tracer side which reduces the FPS. The results below are recorded with **Machine 1** with the basic Cornell box scene file we provided in our repository and they do not use color compression (check Color Compression optimization section for more detail).
+
+| FPS | Save Image Time
+| :----------------------------------------------------------: | :----------------------------------------------------------:
+<img src="images/split_fps.png" alt="4-way vs full fps chart" width=650> | <img src="images/split_graph.png" alt="4-way vs full save chart" width=650>
+
 **Transmission of Frames**
 
 Frames are transmitted from the desktop server application to the AR application running on HoloLens 2. Before transmission, frames are broken into packets of 1024Kb. Since the size of frames is 1.2MB, a lot of bandwidth is wasted in this process. To conserve bandwidth and the processing power required in breaking up frames into data packets, ray tracer splits the frames into 4 parts, which are then transmitted as a complete packet. The packet size is also reduced from 1024 to 512 Kb. 
@@ -217,7 +217,7 @@ The above chart shows the affect of splitting images and varying transmission pa
 
 **Late-stage Reprojection**
 
-Although this was a planned feature for this project, Late Stage Reprojection was not effective for the current project architecture. Conventionally, Late stage reprojection is implemented using hardware acceleration and since we did not have low-level api access for hololens, it had to be implemented on CPU which used up most of the resources in HoloLens. 
+Although this was a planned feature for this project, Late Stage Reprojection was not effective for the current project architecture. Conventionally, Late stage reprojection is implemented using hardware acceleration and since we did not have low-level api access for HoloLens, it had to be implemented on CPU which used up most of the resources in HoloLens. 
 Recording was not possible for this feature as HoloLens terminates any applications that utilize more than a specified amount of processing resources.
 
 <a name="resources"/>
@@ -245,3 +245,4 @@ These resources, including third-party libraries, helped us brainstorm ideas and
 - [RGB565 Color Picker - Barth Development](http://www.barth-dev.de/online/rgb565-color-picker/)
 - [Parsing a ppm format](http://josiahmanson.com/prose/optimize_ppm/)
 - [Advanced Topics in CUDA](https://onedrive.live.com/view.aspx?resid=A6B78147D66DD722!95165&ithint=file%2cpptx&authkey=!AIL2Ogq2WoUa3O8)
+- [Image-Based Bidirectional Scene Reprojection](http://hhoppe.com/proj/bireproj/)
