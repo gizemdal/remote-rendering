@@ -129,14 +129,14 @@ For our performance optimization analysis, we used these machines with the follo
 
 <img src="images/latency.jpeg" alt="Latency" width=800>
 
-The dataflow diagram above shows the sources of the latency. In each interation, first the state will be updated to create a subframe, in the real usage of our remote rendering project, we turned off the display of subframes sothat the result of ray tracing won't be shown in the desktop. By doing this we can discard the time used in displaying the subframe by ~2.8ms. Instead, the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transfered as a Unity 2D texture object. Finally the texutre will be transmitted through Wifi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
+The dataflow diagram above shows the sources of the latency. In each iteration, first the state will be updated to create a subframe, in the real usage of our remote rendering project, we turned off the display of subframes so that the result of ray tracing won't be shown in the desktop. By doing this we can discard the time used in displaying the subframe by ~2.8ms. Instead, the subframe will be loaded from device to host and exported as a image file. Then the image file will be imported into the Unity server app as bytes and transferred as a Unity 2D texture object. Finally the texture will be transmitted through Wi-Fi to the client's end and being displayed. The four blocks showed above are the major latency sources. To reduce the latency we made several attempts to optimize our pipe line and here is the current latencies.
 
 | Step | Time |
 |---|---|
 | Generate Subframe | 2.6 ms|
 | Save Image | 4.2 ms|
 | Load Image in Server | 0.8 ms|
-| Wifi Transmission and Display | 1.2s |
+| Wi-Fi Transmission and Display | 1.2 s |
 
 *Tested with the sample dragon scene shown above with 768 of image size and 4 samples per subframe, depth is 3*  
 *Tested with **Machine 2***  
@@ -215,7 +215,10 @@ Frames are transmitted from the desktop server application to the AR application
 
 The above chart shows the affect of splitting images and varying transmission packet size on the frames rendered per second inside HoloLens. The results are recorded with **Machine 3**.
 
+**Late-stage Reprojection**
 
+Although this was a planned feature for this project, Late Stage Reprojection was not effective for the current project architecture. Conventionally, Late stage reprojection is implemented using hardware acceleration and since we did not have low-level api access for hololens, it had to be implemented on CPU which used up most of the resources in HoloLens. 
+Recording was not possible for this feature as HoloLens terminates any applications that utilize more than a specified amount of processing resources.
 
 <a name="resources"/>
 
