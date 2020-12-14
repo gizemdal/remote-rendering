@@ -132,8 +132,7 @@ Hololens has strong ability in scanning and rendering the environment around the
 
 |                                                            |                                                            |
 | ---------------------------------------------------------- | ---------------------------------------------------------- |
-| <img src="images/spatialmapping.gif" alt="Spatial Mapping" width=600>
- | <img src="images/spatialmapping2.gif" alt="Spatial Mapping" width=600> |
+| <img src="images/spatialmapping.gif" alt="Spatial Mapping" width=500> | <img src="images/spatialmapping2.gif" alt="Spatial Mapping" width=500> |
 
 ## Performance Analysis
 
