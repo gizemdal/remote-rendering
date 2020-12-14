@@ -1,12 +1,11 @@
 # Remote Rendering for XR  ([Demo](https://www.youtube.com/watch?v=sQsjaNrqbzM&ab_channel=Tushar))
 
 
+<img src="images/readme_main_labeled.png" width = 800>
 
-![Sneak peek](images/readme_main_labeled.png)
+<img src="images/cover.jpg" width = 800>
 
-<img src="images/cover.jpg" width = 1000>
-
-<img src="images/demo.gif">
+<img src="images/demo.gif" width = 800>
 
 *The dragon and sponza meshes are downloaded from [McGuire Computer Graphics Archive Meshes](https://casual-effects.com/data/)*
 
@@ -121,11 +120,13 @@ For each frame cycle, the frame buffer is dumped into an image file on device me
 
 <a name="performance"/>
 
-## Camera Synchronization
+### Camera Synchronization
 
 Based on the file I/O system, the raytracer can read data from external files, thus provide supports for camera synchronization. Provided with the path of data file, the ray tracer can keep track of the oridentation of it's main camera in each frame and synchronize it with the data. This feature can cooperate with any forms of data recorder which outputs the data in each frame to realize the camera synchronization.
 
 <img src="images/camera.gif" alt="Camera Sync" width=800>
+
+### Hololens Spatial Mapping
 
 ## Performance Analysis
 
@@ -215,7 +216,7 @@ Saving a PPM image 4 times instead of 1 results in slower save image times on th
 | :----------------------------------------------------------: | :----------------------------------------------------------:
 <img src="images/split_fps.png" alt="4-way vs full fps chart" width=650> | <img src="images/split_graph.png" alt="4-way vs full save chart" width=650>
 
-**Transmission of Frames**
+#### Transmission of Frames
 
 Frames are transmitted from the desktop server application to the AR application running on HoloLens 2. Before transmission, frames are broken into packets of 1024Kb. Since the size of frames is 1.2MB, a lot of bandwidth is wasted in this process. To conserve bandwidth and the processing power required in breaking up frames into data packets, ray tracer splits the frames into 4 parts, which are then transmitted as a complete packet. The packet size is also reduced from 1024 to 512 Kb. 
 
@@ -223,7 +224,7 @@ Frames are transmitted from the desktop server application to the AR application
 
 The above chart shows the affect of splitting images and varying transmission packet size on the frames rendered per second inside HoloLens. The results are recorded with **Machine 3**.
 
-**Late-stage Reprojection**
+#### Late-stage Reprojection
 
 Although this was a planned feature for this project, Late Stage Reprojection was not effective for the current project architecture. Conventionally, Late stage reprojection is implemented using hardware acceleration and since we did not have low-level api access for HoloLens, it had to be implemented on CPU which used up most of the resources in HoloLens. 
 Recording was not possible for this feature as HoloLens terminates any applications that utilize more than a specified amount of processing resources.
