@@ -1586,7 +1586,7 @@ int main( int argc, char* argv[] )
             glfwSetScrollCallback( window, scrollCallback );
             glfwSetWindowUserPointer( window, &state.params );
 
-            outfile = "output.png";
+            outfile = "output.ppm";
 
             //
             // Render loop
