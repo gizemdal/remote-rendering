@@ -3,7 +3,7 @@
 
 <img src="images/readme_main_labeled.png" width = 800>
 
-<img src="images/cover.jpg" width = 800>
+<img src="images/cover.gif" width = 800>
 
 <img src="images/demo.gif" width = 800>
 
